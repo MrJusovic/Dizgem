@@ -1,0 +1,134 @@
+﻿@model List<ThemeViewModel>
+@{
+    ViewData["Title"] = "Temalar";
+    var activeThemeName = ViewBag.ActiveThemeName as string;
+}
+
+@section styles{
+    <style>
+        .theme-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+            .theme-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            }
+
+        .theme-screenshot {
+            height: 220px;
+            object-fit: cover;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .theme-actions {
+            background-color: rgba(0,0,0,0.03);
+        }
+    </style>
+}
+
+<h3 class=" mb-4">Temalar</h3>
+<p class="text-muted">Yüklü temaları yönetin ve sitenizin görünümünü değiştirin.</p>
+<hr />
+
+
+<div class="row g-4">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="alert alert-warning">
+                Hiç tema bulunamadı. Lütfen <code>/Themes</code> klasörüne temalarınızı eklediğinizden emin olun.
+            </div>
+        </div>
+    }
+
+    @foreach (var theme in Model)
+    {
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100 theme-card @(theme.IsActive ? "border-primary border-2" : "")">
+                <img src="@theme.ScreenshotUrl" class="card-img-top theme-screenshot" alt="@theme.Name için ekran görüntüsü">
+                <div class="card-body">
+                    <h5 class="card-title d-flex justify-content-between">
+                        @theme.Name
+                        @if (theme.IsActive)
+                        {
+                            <span class="badge bg-primary">Aktif</span>
+                        }
+                    </h5>
+                    <h6 class="card-subtitle mb-2 text-muted">Versiyon: @theme.Version</h6>
+                    <p class="card-text">
+                        <small>Geliştirici: @theme.Author</small>
+                    </p>
+                </div>
+                <div class="card-footer theme-actions">
+                    @if (theme.IsActive)
+                    {
+                        <button class="btn btn-secondary w-100" disabled>Aktif Tema</button>
+                    }
+                    else
+                    {
+                        <form asp-area="Dizgem" asp-controller="Home" asp-action="ActivateTheme" method="post" class="d-grid">
+                            <input type="hidden" name="themeName" value="@theme.DirectoryName" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-primary">Etkinleştir</button>
+                        </form>
+                    }
+                    <!-- Açıklama için bir modal tetikleyici eklenebilir -->
+                    <button type="button" class="btn btn-outline-secondary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#themeDetailModal-@theme.DirectoryName">
+                        Detaylar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tema Detayları için Modal -->
+        <div class="modal fade" id="themeDetailModal-@theme.DirectoryName" tabindex="-1" aria-labelledby="themeDetailModalLabel-@theme.DirectoryName" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="themeDetailModalLabel-@theme.DirectoryName">@theme.Name</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Açıklama:</strong></p>
+                        <p>@theme.Description</p>
+                        <hr>
+                        <p><strong>Versiyon:</strong> @theme.Version</p>
+                        <p><strong>Geliştirici:</strong> @theme.Author</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@* 
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    @foreach (var theme in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm @(theme.IsActive ? "border-success" : "")">
+                <div class="card-body">
+                    <h5 class="card-title">@theme.DisplayName</h5>
+                    <p class="card-text text-muted">Klasör Adı: <code>@theme.Name</code></p>
+
+                    @if (theme.IsActive)
+                    {
+                        <span class="badge bg-success">Aktif</span>
+                    }
+                    else
+                    {
+                        <form asp-area="Dizgem" asp-action="ActivateTheme" asp-controller="Home" method="post">
+                            <input type="hidden" name="themeName" value="@theme.Name" />
+                            <button type="submit" class="btn btn-primary mt-2">Aktif Et</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+ *@

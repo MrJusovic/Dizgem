@@ -1,0 +1,370 @@
+﻿@model Dizgem.Services.MenuManagementViewModel
+
+@{
+    ViewData["Title"] = "Menü Yönetimi";
+}
+
+@section Styles {
+    <style>
+        .menu-item-source-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        .menu-structure-container .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sortable-list {
+            list-style: none;
+            padding: 0;
+        }
+
+            .sortable-list li {
+                display: block;
+                padding: 10px 15px;
+                margin-bottom: 5px;
+                background-color: #f7f7f7;
+                border: 1px solid #ddd;
+                cursor: grab;
+            }
+
+                .sortable-list li .menu-item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .sortable-list li .menu-item-details {
+                    display: none;
+                    padding-top: 15px;
+                    margin-top: 10px;
+                    border-top: 1px dashed #ccc;
+                }
+
+            .sortable-list .sortable-list {
+                margin-top: 10px;
+                margin-left: 30px;
+            }
+        /* İç içe listeler için girinti */
+        .sortable-ghost {
+            background: #c8ebfb;
+            opacity: 0.5;
+        }
+
+        .form-check-label {
+            font-weight: normal;
+        }
+    </style>
+}
+
+
+<h3>Menü Yönetimi</h3>
+<p class="text-muted">
+    @Html.AntiForgeryToken()
+    Temanızda tanımlı menü konumlarına menüler atayın ve içeriklerini düzenleyin.
+</p>
+
+<div class="row">
+    <!-- SOL KOLON: Menüye Eklenecek Öğeler -->
+    <div class="col-lg-4">
+        <div class="accordion" id="menuItemSources">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingPages">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePages" aria-expanded="true" aria-controls="collapsePages">Sayfalar</button>
+                </h2>
+                <div id="collapsePages" class="accordion-collapse collapse show" aria-labelledby="headingPages">
+                    <div class="accordion-body">
+                        <div class="menu-item-source-list" id="source-pages">
+                            @foreach (var mpage in Model.Pages)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="@mpage.Id" data-title="@mpage.Title" data-url="/@mpage.Slug" id="page-@mpage.Id">
+                                    <label class="form-check-label" for="page-@mpage.Id">@mpage.Title</label>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-secondary btn-sm mt-2 w-100 add-selected-btn" data-source="#source-pages">Seçilenleri Menüye Ekle</button>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                 <h2 class="accordion-header" id="headingPosts">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePosts" aria-expanded="false" aria-controls="collapsePosts">Yazılar</button>
+                </h2>
+                <div id="collapsePosts" class="accordion-collapse collapse" aria-labelledby="headingPosts">
+                    <div class="accordion-body">
+                        <div class="menu-item-source-list" id="source-posts">
+                             @foreach (var post in Model.Posts)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="@post.Id" data-title="@post.Title" data-url="/post/@post.Slug" id="post-@post.Id">
+                                    <label class="form-check-label" for="post-@post.Id">@post.Title</label>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-secondary btn-sm mt-2 w-100 add-selected-btn" data-source="#source-posts">Seçilenleri Menüye Ekle</button>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingCustom">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCustom" aria-expanded="false" aria-controls="collapseCustom">Özel Bağlantı</button>
+                </h2>
+                <div id="collapseCustom" class="accordion-collapse collapse" aria-labelledby="headingCustom">
+                    <div class="accordion-body">
+                        <div class="mb-2">
+                            <label for="custom-url" class="form-label">URL</label>
+                            <input type="text" id="custom-url" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="mb-2">
+                             <label for="custom-text" class="form-label">Bağlantı Metni</label>
+                             <input type="text" id="custom-text" class="form-control" placeholder="Anasayfa">
+                        </div>
+                        <button id="add-custom-link-btn" class="btn btn-secondary btn-sm w-100">Menüye Ekle</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ KOLON: Menü Yapısı ve Ayarları -->
+    <div class="col-lg-8">
+        <div class="card menu-structure-container">
+            <div class="card-header">
+                <label for="menu-location-select" class="form-label mb-0"><strong>Menü Konumunu Seçin:</strong></label>
+                <select id="menu-location-select" class="form-select form-select-sm w-50">
+                    <option value="">Bir konum seçin...</option>
+                    @foreach (var location in Model.AvailableLocations)
+                    {
+                        <option value="@location.Key">@location.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="card-body">
+                <p>Önce sol taraftan menüye eklemek istediğiniz öğeleri seçin, ardından burada sürükleyip bırakarak sıralayın.</p>
+                <ul id="menu-structure" class="sortable-list" style="min-height: 200px; border: 1px dashed #ccc; padding: 10px; border-radius: 5px;">
+                    <!-- Seçilen menü öğeleri buraya gelecek -->
+                </ul>
+            </div>
+            <div class="card-footer text-end">
+                 <button id="saveMenuBtn" class="btn btn-primary">Menüyü Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Menü Öğesi için HTML Şablonu -->
+<template id="menu-item-template">
+    <li data-id="" data-url="" data-title="">
+        <div class="menu-item-header">
+            <span class="menu-item-title"></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm toggle-details-btn">▼</button>
+        </div>
+        <div class="menu-item-details">
+            <div class="mb-2">
+                <label class="form-label">Navigasyon Etiketi</label>
+                <input type="text" class="form-control form-control-sm navigation-label-input">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">CSS Sınıfları (isteğe bağlı)</label>
+                <input type="text" class="form-control form-control-sm css-class-input">
+            </div>
+            <a href="#" class="text-danger remove-item-btn">Kaldır</a>
+        </div>
+        <ul class="sortable-list"></ul> <!-- Alt menü öğeleri için -->
+    </li>
+</template>
+
+
+@section Scripts {
+    <!-- SortableJS kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuLocationSelect = document.getElementById('menu-location-select');
+            const menuStructure = document.getElementById('menu-structure');
+            const saveMenuBtn = document.getElementById('saveMenuBtn');
+            const menuItemTemplate = document.getElementById('menu-item-template');
+
+            let sortableInstances = [];
+
+            // Menü konumunu değiştirince menüyü yükle
+            menuLocationSelect.addEventListener('change', async function () {
+                const locationId = this.value;
+                if (!locationId) {
+                    menuStructure.innerHTML = '';
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/Dizgem/Menu/GetMenu?locationId=${locationId}`);
+                    if (!response.ok) throw new Error('Menü yüklenemedi.');
+                    const menuItems = await response.json();
+                    renderMenuItems(menuItems, menuStructure);
+                } catch (error) {
+                    console.error(error);
+                    Swal.fire('Hata!', 'Menü verileri yüklenirken bir sorun oluştu.', 'error');
+                }
+            });
+            
+            // Seçilen öğeleri menüye ekle
+            document.querySelectorAll('.add-selected-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const sourceSelector = this.getAttribute('data-source');
+                    const sourceContainer = document.querySelector(sourceSelector);
+                    const checkboxes = sourceContainer.querySelectorAll('input[type="checkbox"]:checked');
+
+                    checkboxes.forEach(chk => {
+                        addMenuItem({
+                            title: chk.getAttribute('data-title'),
+                            url: chk.getAttribute('data-url'),
+                        });
+                        chk.checked = false; // Eklendikten sonra seçimi kaldır
+                    });
+                });
+            });
+
+            // Özel bağlantıyı menüye ekle
+            document.getElementById('add-custom-link-btn').addEventListener('click', function() {
+                const urlInput = document.getElementById('custom-url');
+                const textInput = document.getElementById('custom-text');
+
+                if (!textInput.value) {
+                    Swal.fire('Uyarı', 'Lütfen bir bağlantı metni girin.', 'warning');
+                    return;
+                }
+                
+                addMenuItem({
+                    title: textInput.value,
+                    url: urlInput.value || '#'
+                });
+                
+                urlInput.value = '';
+                textInput.value = '';
+            });
+
+            // Menüyü kaydet
+            saveMenuBtn.addEventListener('click', async function() {
+                const locationId = menuLocationSelect.value;
+                if (!locationId) {
+                    Swal.fire('Uyarı', 'Lütfen bir menü konumu seçin.', 'warning');
+                    return;
+                }
+
+                const menuData = serializeMenu(menuStructure);
+
+                try {
+                    const response = await fetch('/Dizgem/Menu/Save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ locationId: locationId, menuItems: menuData })
+                    });
+
+                    if (!response.ok) throw new Error('Sunucu hatası.');
+                    
+                    const result = await response.json();
+                    if(result.success) {
+                        Swal.fire('Başarılı!', 'Menü başarıyla kaydedildi.', 'success');
+                    } else {
+                        throw new Error(result.message || 'Bilinmeyen bir hata oluştu.');
+                    }
+                } catch (error) {
+                    Swal.fire('Hata!', 'Menü kaydedilirken bir sorun oluştu: ' + error.message, 'error');
+                }
+            });
+
+            // Dinamik olarak eklenen öğeler için olay delegasyonu
+            menuStructure.addEventListener('click', function(e) {
+                if (e.target.classList.contains('toggle-details-btn')) {
+                    const details = e.target.closest('li').querySelector('.menu-item-details');
+                    details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    e.target.textContent = details.style.display === 'block' ? '▲' : '▼';
+                }
+                if (e.target.classList.contains('remove-item-btn')) {
+                    e.preventDefault();
+                    e.target.closest('li').remove();
+                }
+            });
+
+
+            function addMenuItem(itemData, targetList = menuStructure) {
+                const clone = menuItemTemplate.content.cloneNode(true);
+                const li = clone.querySelector('li');
+                li.setAttribute('data-url', itemData.url);
+                li.setAttribute('data-title', itemData.title);
+
+                const titleSpan = li.querySelector('.menu-item-title');
+                const labelInput = li.querySelector('.navigation-label-input');
+                
+                titleSpan.textContent = itemData.label || itemData.title;
+                labelInput.value = itemData.label || itemData.title;
+                
+                // Kaydedilmiş diğer özellikleri de set et
+                if(itemData.cssClass) {
+                    li.querySelector('.css-class-input').value = itemData.cssClass;
+                }
+                if(itemData.id) {
+                     li.setAttribute('data-id', itemData.id);
+                }
+
+                targetList.appendChild(li);
+                initSortable(li.querySelector('.sortable-list'));
+            }
+            
+            function renderMenuItems(items, container) {
+                container.innerHTML = '';
+                items.forEach(item => {
+                    addMenuItem(item, container);
+                    if (item.children && item.children.length > 0) {
+                        const parentLi = container.lastElementChild;
+                        const sublist = parentLi.querySelector('.sortable-list');
+                        renderMenuItems(item.children, sublist);
+                    }
+                });
+                initSortable(container);
+            }
+
+            function initSortable(el) {
+                if (!el) return;
+                const existing = sortableInstances.find(i => i.el === el);
+                if(existing) existing.destroy();
+
+                const sortable = new Sortable(el, {
+                    group: 'nested',
+                    animation: 150,
+                    fallbackOnBody: true,
+                    swapThreshold: 0.65
+                });
+                sortableInstances.push(sortable);
+            }
+            
+            function serializeMenu(list) {
+                const items = [];
+                list.querySelectorAll(':scope > li').forEach((li, index) => {
+                    const sublist = li.querySelector('.sortable-list');
+                    const item = {
+                        id: li.getAttribute('data-id') || '00000000-0000-0000-0000-000000000000',
+                        order: index,
+                        label: li.querySelector('.navigation-label-input').value,
+                        url: li.getAttribute('data-url'),
+                        cssClass: li.querySelector('.css-class-input').value,
+                        children: serializeMenu(sublist)
+                    };
+                    items.push(item);
+                });
+                return items;
+            }
+
+            initSortable(menuStructure);
+        });
+    </script>
+}

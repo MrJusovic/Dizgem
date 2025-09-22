@@ -1,0 +1,116 @@
+﻿@{
+    ViewData["Title"] = "Index";
+}
+
+@section styles {
+    <link href="~/lib/DataTables/datatables.min.css" rel="stylesheet" type="text/css" media="all" />
+}
+
+<h3>Yazılar</h3>
+
+<p>
+    @Html.AntiForgeryToken()
+    <a asp-area="Dizgem" asp-controller="Posts" asp-action="Upsert" class="btn btn-primary">Yeni Yazı Oluştur</a>
+</p>
+
+<div class="table-responsive">
+    <table id="postsTable" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr>
+                <th>Başlık</th>
+                <th>Yazar</th>
+                <th>Yayın Tarihi</th>
+                <th>Durum</th>
+                <th data-orderable="false">İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+
+@section Scripts {
+
+    <script src="~/lib/DataTables/pdfmake-0.1.36/pdfmake.min.js"></script>
+    <script src="~/lib/DataTables/pdfmake-0.1.36/vfs_fonts.js"></script>
+    <script src="~/lib/DataTables/datatables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var dataTable = $('#postsTable').DataTable({
+                dom: '<"clearfix d-flex justify-content-around mb-3"<"w-100"f>B><"clearfix overflow-auto"t><"px-3 border-0 d-flex flex-column flex-lg-row align-items-center justify-content-between"<li>p>',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        autoFilter: true
+                    }
+                ],
+                "processing": true, // Veri yüklenirken "işleniyor" göstergesi
+                "serverSide": true, // Sunucu taraflı işlemeyi etkinleştir
+                "filter": true, // Arama kutusunu etkinleştir
+                "orderMulti": false, // Çoklu sütun sıralamayı devre dışı bırak
+                "ajax": {
+                    "url": "/Dizgem/Posts/LoadPostsData",
+                    "type": "POST",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "title", "name": "title", "autoWidth": true },
+                    { "data": "author", "name": "author", "autoWidth": true },
+                    { "data": "publishedDate", "name": "publishedDate", "autoWidth": true },
+                    { "data": "status", "name": "status", "autoWidth": true },
+                    {
+                        "data": "id",
+                        "render": function (data, type, row, meta) {
+                            var editUrl = '/Dizgem/Posts/Upsert/' + data;
+                            var deleteUrl = '/Dizgem/Posts/Delete/' + data;
+                            return '<a href="' + editUrl + '" class="btn btn-sm btn-info">Düzenle</a> ' +
+                                   '<a href="javascript:void(0);" class="btn btn-sm btn-danger delete-btn" data-id="${data}" data-name="${row.name}">Sil</a>';
+                        },
+                        "orderable": false,
+                        "width": "150px"
+                    }
+                ],
+                "language": {
+                    "url": "/lib/DataTables/i18n/tr-TR.json"
+                }
+            });
+
+            $(document).on('click', '#postsTable .delete-btn', function () {
+                var postId = $(this).data('id');
+                var postName = $(this).data('name');
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                Swal.fire({
+                    title: 'Emin misiniz?',
+                    text: `'${postName}' yazısını silmek üzeresiniz. Bu işlem geri alınamaz!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Evet, sil!',
+                    cancelButtonText: 'İptal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/Dizgem/Posts/Delete/${postId}`,
+                            type: 'POST',
+                            headers: { 'RequestVerificationToken': token },
+                            success: function (response) {
+                                if (response.success) {
+                                    Swal.fire('Silindi!', response.message, 'success');
+                                    dataTable.ajax.reload();
+                                } else {
+                                    Swal.fire('Hata!', response.message, 'error');
+                                }
+                            },
+                            error: function () {
+                                Swal.fire('Hata!', 'İşlem sırasında bir sunucu hatası oluştu.', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+        });
+    </script>
+}

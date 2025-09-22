@@ -1,0 +1,261 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dizgem Kurulumu</title>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="~/css/site.css" type="text/css" media="all" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="~/css/icons/font-awesome/css/all.css?v=6.5.2" type="text/css" media="all" />
+    <style>
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+        }
+
+        .wizard-step {
+            display: none;
+        }
+
+            .wizard-step.active {
+                display: block;
+            }
+
+        .progress-bar-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-indicator {
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-indicator-bar {
+            height: 100%;
+            background-color: #0d6efd;
+            transition: width 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-center">
+                <h4 class=" text-white">Dizgem Kurulum Sihirbazı</h4>
+            </div>
+            <div class="card-body">
+                <div class="progress-bar-container">
+                    <div class="progress-indicator">
+                        <div id="progressBar" class="progress-indicator-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <form id="installForm" onsubmit="return false;">
+                    <!-- Adım 1: Veritabanı Bilgileri -->
+                    <div id="step-1" class="wizard-step active">
+                        <h5 class="text-center mb-4">Adım 1: Veritabanı Ayarları</h5>
+                        <div class="form-group">
+                            <label for="databaseServer">Sunucu Adresi</label>
+                            <input type="text" class="form-control" id="databaseServer" name="databaseServer" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="databaseName">Veritabanı Adı</label>
+                            <input type="text" class="form-control" id="databaseName" name="databaseName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="databaseUser">Kullanıcı Adı</label>
+                            <input type="text" class="form-control" id="databaseUser" name="databaseUser" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="databasePassword">Şifre</label>
+                            <input type="password" class="form-control" id="databasePassword" name="databasePassword" required>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-info me-2" onclick="testConnection()">
+                                <i class="fas fa-database"></i> Bağlantıyı Test Et
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(1)">
+                                İleri <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Adım 2: Site Bilgileri -->
+                    <div id="step-2" class="wizard-step">
+                        <h5 class="text-center mb-4">Adım 2: Site Bilgileri</h5>
+                        <div class="form-group">
+                            <label for="siteTitle">Site Başlığı</label>
+                            <input type="text" class="form-control" id="siteTitle" name="siteTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="siteDescription">Site Açıklaması</label>
+                            <textarea class="form-control" id="siteDescription" name="siteDescription" rows="3"></textarea>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-secondary me-2" onclick="prevStep(2)">
+                                <i class="fas fa-arrow-left"></i> Geri
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                İleri <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Adım 3: Yönetici Hesabı -->
+                    <div id="step-3" class="wizard-step">
+                        <h5 class="text-center mb-4">Adım 3: Yönetici Hesabı Oluştur</h5>
+                        <div class="form-group">
+                            <label for="adminUsername">Kullanıcı Adı</label>
+                            <input type="text" class="form-control" id="adminUsername" name="adminUsername" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminEmail">E-posta</label>
+                            <input type="email" class="form-control" id="adminEmail" name="adminEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adminPassword">Şifre</label>
+                            <input type="password" class="form-control" id="adminPassword" name="adminPassword" required>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-secondary me-2" onclick="prevStep(3)">
+                                <i class="fas fa-arrow-left"></i> Geri
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="completeInstallation()">
+                                <i class="fas fa-check"></i> Kurulumu Tamamla
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="statusMessage" class="mt-3 text-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+
+        function showStep(step) {
+            document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            updateProgressBar(step);
+        }
+
+        function updateProgressBar(step) {
+            const progress = (step - 1) * 50;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+
+        function nextStep(current) {
+            const stepId = `#step-${current}`;
+            const inputs = document.querySelectorAll(`${stepId} input[required], ${stepId} textarea[required]`);
+            let allValid = true;
+            inputs.forEach(input => {
+                if (!input.value) {
+                    input.classList.add('is-invalid');
+                    allValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            if (allValid) {
+                currentStep = current + 1;
+                showStep(currentStep);
+            } else {
+                showStatus('Lütfen tüm zorunlu alanları doldurun.', 'danger');
+            }
+        }
+
+        function prevStep(current) {
+            currentStep = current - 1;
+            showStep(currentStep);
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `mt-3 text-${type}`;
+        }
+
+        async function testConnection() {
+            const databaseServer = document.getElementById('databaseServer').value;
+            const databaseName = document.getElementById('databaseName').value;
+            const databaseUser = document.getElementById('databaseUser').value;
+            const databasePassword = document.getElementById('databasePassword').value;
+
+            if (!databaseServer || !databaseName || !databaseUser || !databasePassword) {
+                showStatus("Lütfen tüm veritabanı bağlantı bilgilerini girin.", "danger");
+                return;
+            }
+
+            showStatus("Bağlantı test ediliyor...", "info");
+
+            const data = {
+                databaseServer: databaseServer,
+                databaseName: databaseName,
+                databaseUser: databaseUser,
+                databasePassword: databasePassword
+            };
+            const response = await fetch('/Install/TestConnection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showStatus("Bağlantı başarılı!", "success");
+            } else {
+                showStatus(result.message, "danger");
+            }
+        }
+
+        async function completeInstallation() {
+            const data = {
+                databaseServer: document.getElementById('databaseServer').value,
+                databaseName: document.getElementById('databaseName').value,
+                databaseUser: document.getElementById('databaseUser').value,
+                databasePassword: document.getElementById('databasePassword').value,
+                siteTitle: document.getElementById('siteTitle').value,
+                siteDescription: document.getElementById('siteDescription').value,
+                adminUsername: document.getElementById('adminUsername').value,
+                adminEmail: document.getElementById('adminEmail').value,
+                adminPassword: document.getElementById('adminPassword').value
+            };
+
+            showStatus("Kurulum başlatılıyor...", "info");
+
+            const response = await fetch('/Install/CompleteInstallation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showStatus("Kurulum başarıyla tamamlandı! Yönlendiriliyorsunuz...", "success");
+                setTimeout(() => window.location.href = result.redirectUrl, 2000);
+            } else {
+                showStatus(result.message || result.errors.join('<br>'), "danger");
+            }
+        }
+        showStep(currentStep);
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+﻿@model Post
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<h1>@Model.Title</h1>
+@{
+    if (!string.IsNullOrEmpty(Model?.CoverPhotoUrl ?? null))
+    {
+        <img class="img img-fluid img-shadow" src="@Model.CoverPhotoUrl" />
+    }
+}
+
+@Model.RenderedContent

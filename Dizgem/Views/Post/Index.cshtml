@@ -1,0 +1,12 @@
+﻿@model IEnumerable<Post>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<ul>
+    @foreach (var post in Model ?? [])
+    {
+        <li>@post.Title <br />@post.RenderedContent.ToString().Substring(0, Math.Min(post.RenderedContent.Value?.Length ?? 0, 100))</li>
+    }
+</ul>

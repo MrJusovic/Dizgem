@@ -1,0 +1,11 @@
+{
+  "name": "Dizgem Varsayılan Tema",
+  "version": "1.0.0",
+  "author": "Dizgem Geliştirici Ekibi",
+  "description": "Dizgem için resmi, temiz ve modern varsayılan tema.",
+  "menuLocations": {
+    "primary_navigation": "Ana Menü (Header)",
+    "footer_navigation": "Alt Bilgi Menüsü (Footer)",
+    "social_links_menu": "Sosyal Medya Linkleri Menüsü"
+  }
+}

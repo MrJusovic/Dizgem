@@ -1,0 +1,142 @@
+﻿@model Dizgem.Models.LoginViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Login</title>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="~/css/site.css" type="text/css" media="all" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="~/css/icons/font-awesome/css/all.css?v=6.5.2" type="text/css" media="all" />
+</head>
+<body>
+    <div class="main-wrapper">
+        <!-- Preloader -->
+        <div class="preloader">
+            @*<img src="../assets/images/logos/logo-icon.svg" alt="loader" class="lds-ripple img-fluid" />*@
+            <svg class="tea lds-ripple" width="37" height="48" viewbox="0 0 37 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M27.0819 17H3.02508C1.91076 17 1.01376 17.9059 1.0485 19.0197C1.15761 22.5177 1.49703 29.7374 2.5 34C4.07125 40.6778 7.18553 44.8868 8.44856 46.3845C8.79051 46.79 9.29799 47 9.82843 47H20.0218C20.639 47 21.2193 46.7159 21.5659 46.2052C22.6765 44.5687 25.2312 40.4282 27.5 34C28.9757 29.8188 29.084 22.4043 29.0441 18.9156C29.0319 17.8436 28.1539 17 27.0819 17Z" stroke="#2962FF" stroke-width="2"></path>
+                <path d="M29 23.5C29 23.5 34.5 20.5 35.5 25.4999C36.0986 28.4926 34.2033 31.5383 32 32.8713C29.4555 34.4108 28 34 28 34" stroke="#2962FF" stroke-width="2"></path>
+                <path id="teabag" fill="#2962FF" fill-rule="evenodd" clip-rule="evenodd" d="M16 25V17H14V25H12C10.3431 25 9 26.3431 9 28V34C9 35.6569 10.3431 37 12 37H18C19.6569 37 21 35.6569 21 34V28C21 26.3431 19.6569 25 18 25H16ZM11 28C11 27.4477 11.4477 27 12 27H18C18.5523 27 19 27.4477 19 28V34C19 34.5523 18.5523 35 18 35H12C11.4477 35 11 34.5523 11 34V28Z"></path>
+                <path id="steamL" d="M17 1C17 1 17 4.5 14 6.5C11 8.5 11 12 11 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#2962FF"></path>
+                <path id="steamR" d="M21 6C21 6 21 8.22727 19 9.5C17 10.7727 17 13 17 13" stroke="#2962FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </div>
+        <div id="main-wrapper" class="auth-customizer-none">
+            <div class="position-relative overflow-hidden radial-gradient min-vh-100 w-100">
+                <div class="position-relative z-index-5 min-vh-100">
+                    <div class="row justify-content-center">
+                        <div class="col-xl-7 col-xxl-8">
+                            <a href="@Url.Action("Index", "Home")" class="text-nowrap logo-img d-block px-4 py-9 w-100">
+                                <b class="logo-icon">
+                                    <!--You can put here icon as well // <i class="wi wi-sunset"></i> //-->
+                                    <!-- Dark Logo icon -->
+                                    <img src="~/images/dizgem-logo.png" alt="Dizgem CRM" style="max-width: 60px;" />
+                                </b>
+                                <!--End Logo icon -->
+                                <!-- Logo text -->
+                                <!--<span class="logo-text">-->
+                                <!-- dark Logo text -->
+                                <!--<img src="../assets/images/logos/logo-text.svg" alt="homepage" class="dark-logo ps-2" />
+                                </span>-->
+                            </a>
+                            <div class="d-none d-xl-flex align-items-center justify-content-center h-n80">
+                                <img src="~/images/login-security.png" alt="Dizgem CRM" class="img-fluid" width="500" />
+                            </div>
+                            @*<div class="obj-left d-none d-md-block">
+                                    <img src="../assets/images/backgrounds/leaf-left.png" alt="img" />
+                                </div>*@
+                        </div>
+                        <div class="col-xl-5 col-xxl-4 col-md-8 mt-5 mt-lg-0 bg-lg-white">
+                            <div class="authentication-login auth-card-login min-vh-100 min-height-auto bg-white row justify-content-center align-items-center p-4 mx-3 mx-lg-auto mt-5 mt-sm-0">
+                                <div class="z-index-5">
+                                    <h2 class="mb-1 fs-7 fw-bolder">Dizgem CRM'ya Hoş Geldiniz</h2>
+                                    <p class="mb-4">Lütfen Kullanıcı Bilgilerinizi Yazınız</p>
+                                    @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <div class="mb-3">
+                                            <label for="Username" class="form-label" data-eposta-str>E-Posta Adresi</label>
+                                            @Html.TextBoxFor(x => x.Username, new { @class = "form-control", data_eposta_str = "" })
+                                        </div>
+                                        <div class="mb-4">
+                                            <label for="Password" class="form-label" data-sifre-str>Parola</label>
+                                            @Html.PasswordFor(x => x.Password, new { @class = "form-control", data_sifre_str = "" })
+                                        </div>
+                                        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                                            <div class="form-check">
+                                                @Html.CheckBoxFor(x => x.RememberMe, new { @class = "form-check-input primary" })
+                                                <label class="form-check-label text-dark" for="flexCheckChecked" data-beni-hatirla>
+                                                    Beni Hatırla
+                                                </label>
+                                            </div>
+                                            <a class="text-primary fw-medium" href="@Url.Action("SifremiUnuttum", "Kullanici")" data-sifremi-unuttum tabindex="-1">
+                                                Şifremi Unuttum
+                                            </a>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100 py-8 mb-4 rounded-2" data-giris-str>Giriş</button>
+
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="dark-transparent sidebartoggler"></div>
+    <script src="~/lib/jquery/dist/jquery.js"></script>
+    <script src="~/lib/toastr/toastr.js"></script>
+    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+    <script>
+        var userSettings = {
+            Layout: "vertical", // vertical | horizontal
+            SidebarType: "full", // full | mini-sidebar
+            BoxedLayout: true, // true | false
+            Direction: "ltr", // ltr | rtl
+            Theme: "light", // light | dark
+            ColorTheme: "Blue_Theme", // Blue_Theme | Aqua_Theme | Purple_Theme | Green_Theme | Cyan_Theme | Orange_Theme
+            cardBorder: false, // true | false
+        };
+    </script>
+    @*<script src="~/Content/js/app.min.js"></script>*@
+    <script src="~/lib/theme.min.js"></script>
+
+
+    @{
+
+        try
+        {
+            if (TempData["SifreSifirlandi"] != null)
+            {
+                if ((bool)TempData["SifreSifirlandi"])
+                {
+                    <script>
+                        jQuery(function ($) {
+                            toastr.success("Başlamaya Hazırsınız, Giriş Yapabilirsiniz!", "Şifre Oluşturuldu");
+                        });
+                    </script>
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+    }
+</body>
+</html>

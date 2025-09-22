@@ -1,0 +1,261 @@
+﻿@model SettingsViewModel
+@{
+    ViewData["Title"] = "Genel Ayarlar";
+}
+
+@section Styles {
+    <style>
+        .image-uploader-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .image-uploader {
+            border: 2px dashed #ced4da;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+            .image-uploader:hover, .image-uploader.dragover {
+                background-color: #f8f9fa;
+            }
+
+        .image-preview-container {
+            position: relative;
+            width: 200px;
+            height: auto;
+        }
+
+            .image-preview-container img {
+                max-width: 100%;
+                height: auto;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+
+        .remove-image-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+    </style>
+}
+
+<h3>@ViewData["Title"]</h3>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" role="alert">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+<form asp-area="Dizgem" asp-controller="Settings" asp-action="Index" method="post" class="form row">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                Genel Site Ayarları
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label asp-for="SiteTitle" class="form-label"></label>
+                            <input asp-for="SiteTitle" class="form-control" />
+                            <span asp-validation-for="SiteTitle" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="SiteDescription" class="form-label"></label>
+                            <textarea asp-for="SiteDescription" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="SiteDescription" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <h5 class="card-title">Sosyal Medya ve Paylaşım</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="FaviconUrl" class="form-label"></label>
+                        <!-- Favicon Yükleyici -->
+                        <div class="image-uploader-container">
+                            <input type="hidden" asp-for="FaviconUrl" id="favicon-url-input" />
+                            <input type="file" id="favicon-file-input" class="d-none" accept="image/png, image/x-icon, image/svg+xml, image/jpeg">
+                            <div id="favicon-uploader" class="image-uploader">
+                                <p>Buraya bir favicon sürükleyin veya seçmek için tıklayın.</p>
+                                <small class="text-muted">(.ico, .png, .svg)</small>
+                            </div>
+                            <div id="favicon-preview-container" class="image-preview-container" style="display: none;">
+                                <img id="favicon-preview" src="@Model.FaviconUrl" alt="Favicon Önizleme" />
+                                <button type="button" id="remove-favicon" class="btn btn-sm btn-danger remove-image-btn">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SiteImageUrl" class="form-label"></label>
+                        <!-- Site Resmi Yükleyici -->
+                        <div class="image-uploader-container">
+                            <input type="hidden" asp-for="SiteImageUrl" id="site-image-url-input" />
+                            <input type="file" id="site-image-file-input" class="d-none" accept="image/png, image/jpeg, image/webp">
+                            <div id="site-image-uploader" class="image-uploader">
+                                <p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p>
+                                <small class="text-muted">(.jpg, .png, .webp)</small>
+                            </div>
+                            <div id="site-image-preview-container" class="image-preview-container" style="display: none;">
+                                <img id="site-image-preview" src="@Model.SiteImageUrl" alt="Site Resmi Önizleme" />
+                                <button type="button" id="remove-site-image" class="btn btn-sm btn-danger remove-image-btn">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label asp-for="TwitterHandle" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">@@</span>
+                                <input asp-for="TwitterHandle" class="form-control" placeholder="dizgem" />
+                            </div>
+                            <span asp-validation-for="TwitterHandle" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <div class="card mt-4">
+            <div class="card-header">
+                SMTP E-posta Ayarları
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SmtpHost" class="form-label"></label>
+                        <input asp-for="SmtpHost" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SmtpPort" class="form-label"></label>
+                        <input asp-for="SmtpPort" class="form-control" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SmtpUser" class="form-label"></label>
+                        <input asp-for="SmtpUser" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SmtpPassword" class="form-label"></label>
+                        <input asp-for="SmtpPassword" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="SmtpFromEmail" class="form-label"></label>
+                        <input asp-for="SmtpFromEmail" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3 d-flex align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" asp-for="SmtpUseSsl">
+                            <label class="form-check-label" asp-for="SmtpUseSsl"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Ayarları Kaydet</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // İki yükleyici için de aynı fonksiyonu kullanacağız
+            function initializeUploader(uploaderId, fileInputId, urlInputId, previewContainerId, previewImgId, removeBtnId) {
+                const uploader = document.getElementById(uploaderId);
+                const fileInput = document.getElementById(fileInputId);
+                const urlInput = document.getElementById(urlInputId);
+                const previewContainer = document.getElementById(previewContainerId);
+                const previewImg = document.getElementById(previewImgId);
+                const removeBtn = document.getElementById(removeBtnId);
+
+                // Mevcut resim varsa önizlemeyi göster
+                if (urlInput.value) {
+                    previewContainer.style.display = 'block';
+                    uploader.style.display = 'none';
+                } else {
+                    previewContainer.style.display = 'none';
+                    uploader.style.display = 'block';
+                }
+
+                uploader.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.files.length > 0) handleFileUpload(fileInput.files[0]);
+                });
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploader.addEventListener(eventName, e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, false);
+                });
+
+                uploader.addEventListener('dragover', () => uploader.classList.add('dragover'));
+                uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
+                uploader.addEventListener('drop', e => {
+                    uploader.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) handleFileUpload(e.dataTransfer.files[0]);
+                });
+
+                removeBtn.addEventListener('click', () => {
+                    urlInput.value = '';
+                    previewImg.src = '';
+                    fileInput.value = ''; // Input'u temizle
+                    previewContainer.style.display = 'none';
+                    uploader.style.display = 'block';
+                    uploader.innerHTML = '<p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p>';
+                });
+
+                function handleFileUpload(file) {
+                    if (!file.type.startsWith('image/')) {
+                        alert('Lütfen bir resim dosyası seçin.');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    uploader.innerHTML = '<p>Yükleniyor...</p>';
+
+                    fetch('/api/upload/UploadImage', { method: 'POST', body: formData })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success === 1 && result.file.url) {
+                                urlInput.value = result.file.url;
+                                previewImg.src = result.file.url;
+                                previewContainer.style.display = 'block';
+                                uploader.style.display = 'none';
+                            } else {
+                                throw new Error(result.message || 'Dosya yüklenemedi.');
+                            }
+                        })
+                        .catch(error => {
+                            alert('Hata: ' + error.message);
+                            uploader.innerHTML = '<p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p>';
+                        });
+                }
+            }
+
+            // Favicon yükleyiciyi başlat
+            initializeUploader('favicon-uploader', 'favicon-file-input', 'favicon-url-input', 'favicon-preview-container', 'favicon-preview', 'remove-favicon');
+
+            // Site Resmi yükleyiciyi başlat
+            initializeUploader('site-image-uploader', 'site-image-file-input', 'site-image-url-input', 'site-image-preview-container', 'site-image-preview', 'remove-site-image');
+        });
+    </script>
+}

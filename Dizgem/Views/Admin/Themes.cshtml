@@ -1,0 +1,33 @@
+﻿@using Dizgem.Models
+@model List<Theme>
+@{
+    ViewData["Title"] = "Themes";
+}
+
+<h1 class="display-4 mb-4">Temalar</h1>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    @foreach (var theme in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm @(theme.IsActive ? "border-success" : "")">
+                <div class="card-body">
+                    <h5 class="card-title">@theme.DisplayName</h5>
+                    <p class="card-text text-muted">Klasör Adı: <code>@theme.Name</code></p>
+
+                    @if (theme.IsActive)
+                    {
+                        <span class="badge bg-success">Aktif</span>
+                    }
+                    else
+                    {
+                        <form asp-action="ActivateTheme" asp-controller="Admin" method="post">
+                            <input type="hidden" name="themeName" value="@theme.Name" />
+                            <button type="submit" class="btn btn-primary mt-2">Aktif Et</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,518 @@
+﻿@model PostEditViewModel<Page>
+
+@{
+    ViewData["Title"] = Model.Post?.Id == Guid.Empty ? "Yeni Sayfa Oluştur" : "Sayfayı Düzenle";
+}
+@section styles {
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+
+    <style>
+        #cover-photo-uploader {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+
+            #cover-photo-uploader.dragover {
+                background-color: #f0f8ff;
+                border-color: #0056b3;
+            }
+
+        #cover-photo-preview-container {
+            position: relative;
+            display: none; /* Başlangıçta gizli */
+        }
+
+        #cover-photo-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        #remove-cover-photo {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+}
+<h3>@ViewData["Title"]</h3>
+<hr />
+<form asp-area="Dizgem" asp-controller="Pages" asp-action="Upsert" method="post" class="form row">
+
+    <div class="col-md-8">
+        <input type="hidden" asp-for="Post.Id" />
+        <input type="hidden" asp-for="Post.AuthorId" />
+        <input type="hidden" asp-for="Post.PublishedDate" />
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="form-group mb-3">
+                    <label asp-for="Post.Title" class="control-label">Başlık</label>
+                    <input asp-for="Post.Title" class="form-control" />
+                    <span asp-validation-for="Post.Title" class="text-danger"></span>
+                </div>
+                <div class="form-group mb-3">
+                    <label asp-for="Post.Slug" class="control-label">URL (Slug)</label>
+                    <input asp-for="Post.Slug" class="form-control" />
+                    <span asp-validation-for="Post.Slug" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Post.ContentJson" class="control-label">İçerik</label>
+                    <div id="editorjs" style="border: 1px solid #ced4da; border-radius: .25rem; padding: 1rem;"></div>
+                    <input type="hidden" asp-for="Post.ContentJson" id="content-output" />
+                    <input type="hidden" asp-for="Post.Content" id="content-output2" />
+                    <span asp-validation-for="Post.ContentJson" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="form-group mb-3">
+                    <label asp-for="Post.Excerpt" class="control-label">Özet</label>
+                    <textarea asp-for="Post.Excerpt" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Post.Excerpt" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-bold">SEO Ayarları</div>
+            <div class="card-body">
+                <div class="form-group mb-2">
+                    <label asp-for="Post.SeoTitle">SEO Başlığı</label>
+                    <input asp-for="Post.SeoTitle" class="form-control" placeholder="Boş bırakılırsa ana başlık kullanılır..." />
+                </div>
+                <div class="form-group mb-2">
+                    <label asp-for="Post.SeoDescription">SEO Açıklaması</label>
+                    <textarea asp-for="Post.SeoDescription" class="form-control" rows="3" placeholder="Boş bırakılırsa özetten oluşturulur..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Post.SeoKeywords">Anahtar Kelimeler</label>
+                    <input asp-for="Post.SeoKeywords" class="form-control" placeholder="Virgülle ayırın..." />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="form-group mb-3">
+                    <label asp-for="Post.CoverPhotoUrl" class="control-label"></label>
+
+                    @* Bu gizli input, sunucuya gönderilecek olan URL'i tutar *@
+                    <input type="hidden" asp-for="Post.CoverPhotoUrl" id="cover-photo-url-input" />
+
+                    @* Resim önizlemesi ve kaldırma butonu için konteyner *@
+                    <div id="cover-photo-preview-container">
+                        <img id="cover-photo-preview" src="@Model?.Post?.CoverPhotoUrl" alt="Kapak Fotoğrafı Önizlemesi" />
+                        <button type="button" id="remove-cover-photo" class="btn btn-danger btn-sm">&times; Kaldır</button>
+                    </div>
+
+                    @* Sürükle-bırak alanı *@
+                    <div id="cover-photo-uploader">
+                        <p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p>
+                        <small class="text-muted">(Max 5MB - .jpg, .png, .gif, .webp)</small>
+                    </div>
+
+                    @* Gerçek dosya seçimi için gizli input *@
+                    <input type="file" id="cover-photo-file-input" accept="image/*" style="display: none;" />
+                    <span asp-validation-for="Post.CoverPhotoUrl" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="form-group form-check mb-3 d-flex justify-content-end">
+                    <label class="form-check-label">
+                        <input class="form-check-input" asp-for="Post.IsPublished" /> Yayınla
+                    </label>
+                </div>
+
+                <div class="form-group mt-3 d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-secondary">Geri Dön</a>
+                    <input type="submit" value="Kaydet" id="save-button" class="btn btn-primary" />
+
+                </div>
+            </div>
+        </div>
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header fw-bold">Kategoriler</div>
+            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                @foreach (var category in Model?.AllCategories ?? [])
+                {
+                    <div class="form-check">
+                        <input class="form-check-input category-checkbox" type="checkbox" name="SelectedCategoryIds" value="@category.Id" id="cat-@category.Id"
+                               @(Model?.SelectedCategoryIds != null && Model.SelectedCategoryIds.Contains(category.Id) ? "checked" : "") />
+                        <label class="form-check-label" for="cat-@category.Id">@category.Name</label>
+                    </div>
+                }
+                <hr />
+                <label class="fw-bold mb-2">Ana Kategori</label>
+                <div id="primary-category-options">
+                    @* Burası JS ile seçilen kategorilerden doldurulacak *@
+                </div>
+                <span asp-validation-for="PrimaryCategoryId" class="text-danger"></span>
+            </div>
+        </div>
+
+        <!-- Etiket Paneli -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header fw-bold">Etiketler</div>
+            <div class="card-body">
+                <input asp-for="TagsString" id="tags-input" placeholder="Etiketleri virgülle ayırın..." />
+            </div>
+        </div>
+    </div>
+
+</form>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-multiblock-selection-plugin"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/header@@latest"></script><!-- Header -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/image@@latest"></script><!-- Image -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/delimiter@@latest"></script><!-- Delimiter -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/list@@latest"></script><!-- List -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/checklist@@latest"></script><!-- Checklist -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/quote@@latest"></script><!-- Quote -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/code@@latest"></script><!-- Code -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/embed@@latest"></script><!-- Embed -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/table@@latest"></script><!-- Table -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/link@@latest"></script><!-- Link -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/warning@@latest"></script><!-- Warning -->
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop"></script><!-- Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/editorjs-undo"></script><!-- Undo -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/marker@@latest"></script><!-- Marker -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/raw@@latest"></script><!-- RAW Html -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/inline-code@@latest"></script><!-- Inline Code -->
+    <!-- Load Editor.js's Core -->
+    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/editorjs@@latest"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+
+            @{
+                    // C# tarafında, JavaScript'e gönderilecek veriyi güvenli bir şekilde hazırlıyoruz.
+                    // Eğer ContentJson boş veya null ise, Editor.js'e boş bir obje '{}' gönderiyoruz.
+                    // Dolu ise, mevcut JSON verisini olduğu gibi kullanıyoruz.
+                    var initialData = string.IsNullOrWhiteSpace(Model?.Post?.ContentJson) ? "{}" : Model?.Post?.ContentJson;
+            }
+
+            // Editörümüzü başlatıyoruz
+            const editor = new EditorJS({
+                autofocus: true,
+                holder: 'editorjs',
+                tools: {
+                    raw: RawTool,
+                  header: {
+                    class: Header,
+                    inlineToolbar: ['marker', 'link'],
+                    config: {
+                      placeholder: 'Header'
+                    },
+                    shortcut: 'CMD+SHIFT+H'
+                  },
+
+                  /**
+                   * Or pass class directly without any configuration
+                   */
+                image: {
+                    class: ImageTool, // Global scope'ta ImageTool objesini kullanır
+                    inlineToolbar: true,
+                    config: {
+                        // Dosya yükleme için backend endpoint'i
+                        endpoints: {
+                            byFile: '/api/upload/UploadImage', // C# Controller'ımızdaki metodun adresi
+                            byUrl: '/api/FetchUrl', // URL ile resim çekme için, şimdilik bunu yazmasanız da olur
+                        },
+                        uploader: {
+                            // IFormFile parametresinin adıyla eşleşmeli
+                            param: 'image'
+                        }
+                    }
+                },
+
+                  list: {
+                    class: EditorjsList,
+                    inlineToolbar: true,
+                    config: {
+                        defaultStyle: 'unordered'
+                    },
+                },
+
+                  checklist: {
+                    class: Checklist,
+                    inlineToolbar: true,
+                  },
+
+                  quote: {
+                    class: Quote,
+                    inlineToolbar: true,
+                    config: {
+                      quotePlaceholder: 'Enter a quote',
+                      captionPlaceholder: 'Quote\'s author',
+                    },
+                    shortcut: 'CMD+SHIFT+O'
+                  },
+
+                  warning: Warning,
+
+                  marker: {
+                    class:  Marker,
+                    shortcut: 'CMD+SHIFT+M'
+                  },
+
+                  code: {
+                    class:  CodeTool,
+                    shortcut: 'CMD+SHIFT+C'
+                  },
+
+                  delimiter: Delimiter,
+
+                  inlineCode: {
+                    class: InlineCode,
+                    shortcut: 'CMD+SHIFT+C'
+                  },
+
+                  linkTool: LinkTool,
+
+                  embed: Embed,
+
+                  table: {
+                    class: Table,
+                    inlineToolbar: true,
+                    shortcut: 'CMD+ALT+T'
+                  },
+
+                },
+                // Veritabanından gelen mevcut veriyi editöre yükleme
+                data: @Html.Raw(initialData),
+                onReady: () => {
+                  new Undo({ editor });
+                  new DragDrop(editor);
+                }
+            });
+
+            // Form gönderilmeden önce editördeki veriyi gizli input'a yaz
+            // Formu ve kaydet butonunu DOM'dan alıyoruz
+            const saveButton = document.getElementById('save-button');
+            const formElement = saveButton.closest('form');
+
+            // Butona tıklandığında çalışacak kodu tanımlıyoruz
+            saveButton.addEventListener('click', function(e) {
+                e.preventDefault(); // Butonun formu hemen göndermesini engelle
+
+                // Butonu geçici olarak devre dışı bırakıp "Kaydediliyor..." yazalım
+                saveButton.disabled = true;
+                saveButton.value = "Kaydediliyor...";
+
+                editor.save().then((outputData) => {
+                    // Gizli input alanına editör verisini JSON olarak yaz
+                    document.getElementById('content-output').value = JSON.stringify(outputData);
+
+                    // Veri yazıldıktan sonra formu programatik olarak gönder
+                    formElement.submit();
+
+                }).catch((error) => {
+                    console.error('Kaydetme hatası:', error);
+                    alert('Yazı kaydedilirken bir hata oluştu. Lütfen konsolu kontrol edin.');
+
+                    // Hata durumunda butonu tekrar aktif hale getir
+                    saveButton.disabled = false;
+                    saveButton.value = (formElement.action.includes('Edit')) ? 'Kaydet' : 'Oluştur';
+                });
+            });
+
+            // String'in JSON olup olmadığını kontrol eden yardımcı fonksiyon
+            function IsJson(str) {
+                if (typeof str !== 'string' || str.trim() === '') return false;
+                try {
+                    JSON.parse(str);
+                } catch (e) {
+                    return false;
+                }
+                return true;
+            }
+
+            new MultiBlockSelectionPlugin({
+                editor,
+                version: EditorJS.version,
+                onBeforeToolbarOpen(toolbar) {
+                    const dropdown = toolbar.querySelector('.ce-inline-toolbar__dropdown')
+                    if (dropdown instanceof HTMLElement) {
+                        dropdown.style.display = 'none'
+                    }
+                    // show only underline
+                    toolbar.querySelectorAll('[data-tool]:not([data-tool=underline])').forEach((el) => {
+                        if (!(el instanceof HTMLElement)) return
+                        el.style.display = 'none'
+                    })
+                },
+                onAfterToolbarClose(toolbar) {
+                    const dropdown = toolbar.querySelector('.ce-inline-toolbar__dropdown')
+                    if (dropdown instanceof HTMLElement) {
+                        dropdown.style.display = ''
+                    }
+                    toolbar.querySelectorAll('[data-tool]:not([data-tool=underline])').forEach((el) => {
+                        if (!(el instanceof HTMLElement)) return
+                        el.style.display = ''
+                    })
+                },
+            })
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Kategori seçildiğinde, yanındaki "Ana" radio butonunu aktif/pasif yap
+            const primaryCategoryContainer = document.getElementById('primary-category-options');
+            function updatePrimaryCategoryOptions() {
+                primaryCategoryContainer.innerHTML = ''; // Temizle
+                const selectedCheckboxes = document.querySelectorAll('.category-checkbox:checked');
+
+                if (selectedCheckboxes.length === 0) {
+                    primaryCategoryContainer.innerHTML = '<small class="text-muted">Önce kategori seçin.</small>';
+                    return;
+                }
+
+                selectedCheckboxes.forEach(cb => {
+                    const label = cb.nextElementSibling;
+                    const div = document.createElement('div');
+                    div.classList.add('form-check');
+
+                    const isChecked = (cb.value == '@Model.PrimaryCategoryId?.ToString()');
+
+                    div.innerHTML = `<input class="form-check-input" type="radio" name="PrimaryCategoryId" id="primary-cat-${cb.value}" value="${cb.value}" ${isChecked ? 'checked' : ''}>
+                                     <label class="form-check-label" for="primary-cat-${cb.value}">${label.textContent}</label>`;
+                    primaryCategoryContainer.appendChild(div);
+                });
+            }
+            document.querySelectorAll('.category-checkbox').forEach(cb => cb.addEventListener('change', updatePrimaryCategoryOptions));
+            updatePrimaryCategoryOptions(); // Sayfa yüklendiğinde ilk durumu ayarla
+
+            // --- ETİKET YÖNETİMİ (TOM-SELECT) ---
+            new TomSelect('#tags-input', {
+                persist: false,
+                valueField: 'value',
+                labelField: 'title',
+                searchField: 'title',
+                sortField: 'title',
+                createOnBlur: true,
+                create: true,
+                plugins: ['remove_button'],
+                options: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model?.AllTags?.Select(t => new { value = t.Name, title = t.Name }) ?? []))
+            });
+
+
+            // Slug oluşturma mantığı
+            const titleInput = document.getElementById('Post_Title');
+            const slugInput = document.getElementById('Post_Slug');
+            if (titleInput && slugInput) {
+                titleInput.addEventListener('keyup', function () {
+                    slugInput.value = generateSlug(this.value);
+                });
+            }
+
+            // Kapak fotoğrafı yükleyici mantığı
+            const uploader = document.getElementById('cover-photo-uploader');
+            const fileInput = document.getElementById('cover-photo-file-input');
+            const urlInput = document.getElementById('cover-photo-url-input');
+            const previewContainer = document.getElementById('cover-photo-preview-container');
+            const previewImg = document.getElementById('cover-photo-preview');
+            const removeBtn = document.getElementById('remove-cover-photo');
+
+            // Sayfa yüklendiğinde mevcut kapak fotoğrafı varsa göster
+            if (urlInput.value) {
+                previewContainer.style.display = 'block';
+                uploader.style.display = 'none';
+            } else {
+                previewContainer.style.display = 'none';
+                uploader.style.display = 'block';
+            }
+
+            uploader.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    handleFileUpload(fileInput.files[0]);
+                }
+            });
+
+            // Drag & Drop olayları
+            uploader.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploader.classList.add('dragover');
+            });
+            uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
+            uploader.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploader.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Resmi kaldırma
+            removeBtn.addEventListener('click', () => {
+                urlInput.value = '';
+                previewImg.src = '';
+                fileInput.value = ''; // Seçili dosyayı temizle
+                previewContainer.style.display = 'none';
+                uploader.style.display = 'block';
+            });
+
+            function handleFileUpload(file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('Lütfen bir resim dosyası seçin.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', file); // API'nin beklediği parametre adı 'image'
+
+                // Yükleme sırasında görsel geri bildirim (isteğe bağlı)
+                uploader.innerHTML = '<p>Yükleniyor...</p>';
+
+                fetch('/api/upload/UploadImage', {
+                    method: 'POST',
+                    body: formData,
+                    // CSRF token'ı başlığa eklemek gerekebilir, ancak cookie tabanlı auth genellikle yeterlidir.
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success === 1 && result.file.url) {
+                        urlInput.value = result.file.url;
+                        previewImg.src = result.file.url;
+                        previewContainer.style.display = 'block';
+                        uploader.style.display = 'none';
+                    } else {
+                        throw new Error(result.message || 'Dosya yüklenemedi.');
+                    }
+                })
+                .catch(error => {
+                    alert('Hata: ' + error.message);
+                    // Hata durumunda yükleyiciyi eski haline getir
+                    uploader.innerHTML = '<p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p><small class="text-muted">(Max 5MB - .jpg, .png, .gif, .webp)</small>';
+                });
+            }
+
+            function generateSlug(text) {
+                return text.toString().toLowerCase()
+                    .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+                    .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+                    .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
+                    .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+            }
+        });
+    </script>
+}
