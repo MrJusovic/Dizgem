@@ -171,9 +171,11 @@ if (loglamaAcik)
 // -----------------------------
 // Services (DI)
 // -----------------------------
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
 builder.Services.AddHttpClient();
+
+builder.Services.AddMemoryCache();
 
 
 builder.Services.Configure<RazorViewEngineOptions>(options =>
@@ -260,6 +262,7 @@ app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 
 
 var themesPath = Path.Combine(builder.Environment.ContentRootPath, "Themes");

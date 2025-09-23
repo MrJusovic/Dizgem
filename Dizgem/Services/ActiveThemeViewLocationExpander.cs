@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Razor;
+﻿using Dizgem.Helpers;
+using Microsoft.AspNetCore.Mvc.Razor;
 using System.Diagnostics;
 
 namespace Dizgem.Services
@@ -51,6 +52,7 @@ namespace Dizgem.Services
                 Debug.WriteLine($" -> {path}");
             }
             Debug.WriteLine("--- View Arama Bitti ---");
+            LoggerHelper.LogException(new Exception($"View arama yolları genişletildi. Tema: '{theme}', Toplam Yollar: {finalPaths.Count}, Yol Bilgisi: {string.Format("{0}", string.Join('\n', finalPaths))}") { });
 
             return finalPaths;
         }

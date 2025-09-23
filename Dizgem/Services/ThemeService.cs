@@ -11,15 +11,18 @@ namespace Dizgem.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IConnectionStringProvider _connectionStringProvider;
+        private readonly IMemoryCache _memoryCache; //  Önbellek servisi
+        private const string ActiveThemeCacheKey = "ActiveThemeName";
 
         public ThemeService(
             ApplicationDbContext dbContext,
             IWebHostEnvironment webHostEnvironment,
-            IConnectionStringProvider connectionStringProvider)
+            IConnectionStringProvider connectionStringProvider, IMemoryCache memoryCache)
         {
             _dbContext = dbContext;
             _hostingEnvironment = webHostEnvironment;
             _connectionStringProvider = connectionStringProvider;
+            _memoryCache = memoryCache;
         }
 
         public async Task<List<ThemeViewModel>> GetInstalledThemesAsync()
@@ -101,16 +104,27 @@ namespace Dizgem.Services
                 _dbContext.Settings.Add(new Settings { Key = "ActiveTheme", Value = themeName });
             }
             await _dbContext.SaveChangesAsync();
+
+            _memoryCache.Remove(ActiveThemeCacheKey);
         }
 
         public async Task<string> GetActiveThemeNameAsync()
         {
+            if (_memoryCache.TryGetValue(ActiveThemeCacheKey, out string activeThemeName))
+            {
+                return activeThemeName; // Önbellekte varsa, doğrudan döndür.
+            }
+
             if (string.IsNullOrWhiteSpace(_connectionStringProvider.Current))
             {
                 return "Default"; // Kurulum aşamasında varsayılan temayı döndür.
             }
 
             var activeTheme = await _dbContext.Settings.FirstOrDefaultAsync(s => s.Key == "ActiveTheme");
+
+            // Veritabanından okunan güncel bilgiyi, bir sonraki istekte hızlıca erişmek için önbelleğe kaydet.
+            _memoryCache.Set(ActiveThemeCacheKey, activeTheme?.Value ?? "Default", System.TimeSpan.FromHours(1));
+
             return activeTheme?.Value ?? "Default"; // Varsayılan bir tema adı döndür
         }
     }
