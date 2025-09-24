@@ -2,6 +2,7 @@
 using Dizgem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using System.Text.RegularExpressions;
 
 namespace Dizgem.Services
 {
@@ -164,8 +165,10 @@ namespace Dizgem.Services
         {
             // Veritabanına kaydedilecek olan ham JSON'u temizliyoruz.
             page.ContentJson = _htmlParser.SanitizeRawBlocks(page.ContentJson);
-
-            page.Content = _htmlParser.Parse(page.ContentJson);
+            page.ContentJson = page.ContentJson ?? "{}";
+            string pattern = @"</?body.*?>";
+            page.Content = Regex.Replace(page.Content, pattern, string.Empty, RegexOptions.IgnoreCase);
+            //page.Content = _htmlParser.Parse(page.ContentJson);
 
             // Excerpt alanını otomatik olarak oluştur
             var getExcerpt = string.IsNullOrWhiteSpace(page.Excerpt) ? page.Content : page.Excerpt;

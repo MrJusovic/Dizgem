@@ -61,6 +61,7 @@ namespace Dizgem.Areas.Dizgem.Controllers
             ModelState.Remove("Post.PageCategories");
             ModelState.Remove("Post.PageTags");
             ModelState.Remove("Post.Content");
+            ModelState.Remove("Post.ContentJson");
             ModelState.Remove("Post.Excerpt");
             ModelState.Remove("TagsString");
 

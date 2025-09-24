@@ -4,7 +4,9 @@
     ViewData["Title"] = Model.Post?.Id == Guid.Empty ? "Yeni Sayfa Oluştur" : "Sayfayı Düzenle";
 }
 @section styles {
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
+    <link href="~/lib/tom-select/tom-select.css" rel="stylesheet" type="text/css" media="all" />
+    <link href="~/lib/grapes/grapes.min.css" rel="stylesheet" type="text/css" media="all" />
+    <link href="~/lib/grapes/tui-image-editor.css" rel="stylesheet" type="text/css" media="all" />
 
     <style>
         #cover-photo-uploader {
@@ -64,7 +66,11 @@
 
                 <div class="form-group mb-3">
                     <label asp-for="Post.ContentJson" class="control-label">İçerik</label>
-                    <div id="editorjs" style="border: 1px solid #ced4da; border-radius: .25rem; padding: 1rem;"></div>
+                    <div id="editorjs" style="border: 1px solid #ced4da; border-radius: .25rem; padding: 1rem;">
+
+                        @Html.Raw(Model?.Post?.Content)
+
+                    </div>
                     <input type="hidden" asp-for="Post.ContentJson" id="content-output" />
                     <input type="hidden" asp-for="Post.Content" id="content-output2" />
                     <span asp-validation-for="Post.ContentJson" class="text-danger"></span>
@@ -175,132 +181,251 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/tom-select/tom-select.complete.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/editorjs-multiblock-selection-plugin"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/header@@latest"></script><!-- Header -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/image@@latest"></script><!-- Image -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/delimiter@@latest"></script><!-- Delimiter -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/list@@latest"></script><!-- List -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/checklist@@latest"></script><!-- Checklist -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/quote@@latest"></script><!-- Quote -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/code@@latest"></script><!-- Code -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/embed@@latest"></script><!-- Embed -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/table@@latest"></script><!-- Table -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/link@@latest"></script><!-- Link -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/warning@@latest"></script><!-- Warning -->
-    <script src="https://cdn.jsdelivr.net/npm/editorjs-drag-drop"></script><!-- Drag & Drop -->
-    <script src="https://cdn.jsdelivr.net/npm/editorjs-undo"></script><!-- Undo -->
+    <script src="~/lib/grapes/tui-color-picker.min.js"></script>
+    <script src="~/lib/grapes/tui-image-editor.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/marker@@latest"></script><!-- Marker -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/raw@@latest"></script><!-- RAW Html -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/inline-code@@latest"></script><!-- Inline Code -->
-    <!-- Load Editor.js's Core -->
-    <script src="https://cdn.jsdelivr.net/npm/@@editorjs/editorjs@@latest"></script>
+    <script src="~/lib/grapes/grapes.min.js"></script>
+    <script src="~/lib/grapes/grapesjs-preset-webpage.js"></script>
+    <script src="~/lib/grapes/grapesjs-blocks-basic.js"></script>
+    <script src="~/lib/grapes/grapesjs-plugin-forms.js"></script>
+    <script src="~/lib/grapes/grapesjs-component-countdown.js"></script>
+    <script src="~/lib/grapes/grapesjs-plugin-export.js"></script>
+    <script src="~/lib/grapes/grapesjs.tabs.js"></script>
+    <script src="~/lib/grapes/grapesjs-custom-code.js"></script>
+    <script src="~/lib/grapes/grapesjs-touch.js"></script>
+    <script src="~/lib/grapes/grapesjs-parser-postcss.js"></script>
+    <script src="~/lib/grapes/grapesjs-tooltip.js"></script>
+    <script src="~/lib/grapes/grapesjs-tui-image-editor.js"></script>
+    <script src="~/lib/grapes/grapesjs-typed.js"></script>
+    <script src="~/lib/grapes/grapesjs-style-bg.js"></script>
 
-    <script>
+    <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', (event) => {
 
-            @{
-                    // C# tarafında, JavaScript'e gönderilecek veriyi güvenli bir şekilde hazırlıyoruz.
-                    // Eğer ContentJson boş veya null ise, Editor.js'e boş bir obje '{}' gönderiyoruz.
-                    // Dolu ise, mevcut JSON verisini olduğu gibi kullanıyoruz.
-                    var initialData = string.IsNullOrWhiteSpace(Model?.Post?.ContentJson) ? "{}" : Model?.Post?.ContentJson;
-            }
-
-            // Editörümüzü başlatıyoruz
-            const editor = new EditorJS({
-                autofocus: true,
-                holder: 'editorjs',
-                tools: {
-                    raw: RawTool,
-                  header: {
-                    class: Header,
-                    inlineToolbar: ['marker', 'link'],
-                    config: {
-                      placeholder: 'Header'
+            var editor = grapesjs.init({
+                container: '#editorjs',
+                storageManager: false,
+                fromElement: true,
+                styleManager: {
+                    // Hangi stil özelliklerinin görüneceğini belirle
+                    sectors: [{
+                        name: 'Genel',
+                        open: false,
+                        buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
+                    }, {
+                        name: 'Boyutlar',
+                        open: false,
+                        buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'],
+                    }, {
+                        name: 'Yazı Tipi',
+                        open: false,
+                        buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align'],
+                    }, {
+                        name: 'Dekorasyon',
+                        open: false,
+                        buildProps: ['border-radius-c', 'background-color', 'border', 'box-shadow'],
+                    }],
+                },
+                // 🖼️ Görsel Yükleme Yöneticisi (Asset Manager)
+                assetManager: {
+                    // Sunucuya yüklenecek resimleri kabul eden endpoint.
+                    upload: '/api/upload/UploadImage', 
+                    uploadName: 'image', 
+                    autoAdd: 1,
+                    multiUpload: false,
+                    // Sunucudan gelen yanıtın nasıl okunacağını belirtir.
+                    // Genellikle sunucu { "data": ["url1", "url2", ...] } formatında bir JSON döndürür.
+                    uploadText: 'Dosyaları buraya sürükleyin veya seçmek için tıklayın',
+                    assets: [
+                     // Örnek başlangıç görselleri
+                     // 'https://via.placeholder.com/350x250/78c5d6/fff',
+                     // 'https://via.placeholder.com/350x250/459ba8/fff',
+                     // 'https://via.placeholder.com/350x250/79c267/fff',
+                    ],
+                },
+                plugins: [
+                    'grapesjs-preset-webpage',
+                    'gjs-blocks-basic',
+                    'grapesjs-plugin-forms',
+                    'grapesjs-component-countdown',
+                    'grapesjs-plugin-export',
+                    'grapesjs-tabs',
+                    'grapesjs-custom-code',
+                    'grapesjs-touch',
+                    'grapesjs-parser-postcss',
+                    'grapesjs-tooltip',
+                    'grapesjs-tui-image-editor',
+                    'grapesjs-typed',
+                    'grapesjs-style-bg'
+                ],
+                pluginsOpts: {
+                    // 1. Web sayfası ön ayarları (En kapsamlı eklentilerden biri)
+                    'grapesjs-preset-webpage': {
+                        modalImportTitle: 'HTML Kodunu İçe Aktar',
+                        modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">HTML/CSS kodunuzu buraya yapıştırın ve içe aktar butonuna tıklayın.</div>',
+                        modalImportContent: editor => editor.getHtml(),
+                        // İstemediğiniz blokları buradan kaldırabilirsiniz
+                        // blocks: ['link-block', 'quote', 'text-basic'],
                     },
-                    shortcut: 'CMD+SHIFT+H'
-                  },
-
-                  /**
-                   * Or pass class directly without any configuration
-                   */
-                image: {
-                    class: ImageTool, // Global scope'ta ImageTool objesini kullanır
-                    inlineToolbar: true,
-                    config: {
-                        // Dosya yükleme için backend endpoint'i
-                        endpoints: {
-                            byFile: '/api/upload/UploadImage', // C# Controller'ımızdaki metodun adresi
-                            byUrl: '/api/FetchUrl', // URL ile resim çekme için, şimdilik bunu yazmasanız da olur
+                    // 2. Temel bloklar (Sütunlar, resim, metin vs.)
+                    'gjs-blocks-basic': {
+                        flexGrid: true, // Modern flexbox tabanlı sütunlar ekler
+                        stylePrefix: 'gjs-' // Blokların class öneki
+                    },
+                    // 3. Form elemanları (input, textarea, select, button)
+                    'grapesjs-plugin-forms': {
+                        // Form bloklarının kategorisini belirle
+                        category: 'Formlar'
+                    },
+                    // 4. Geri sayım sayacı
+                    'grapesjs-component-countdown': {
+                        // Geri sayım bloğunun görünümü
+                        countdownBlock: {
+                            category: 'Extra',
+                            label: 'Geri Sayım',
                         },
-                        uploader: {
-                            // IFormFile parametresinin adıyla eşleşmeli
-                            param: 'image'
+                        // Tarih formatı ve metinler
+                        dateInputType: 'datetime-local',
+                        labelDay: 'Gün',
+                        labelHour: 'Saat',
+                        labelMinute: 'Dakika',
+                        labelSecond: 'Saniye',
+                    },
+                    // 5. Projeyi HTML/CSS olarak dışa aktarma
+                    'grapesjs-plugin-export': {
+                        // Export butonu tıklandığında hangi dosyaların oluşturulacağını belirle
+                        // Varsayılan olarak index.html ve style.css oluşturur.
+                         addExportBtn: true,
+                         btnLabel: 'Zip Olarak İndir'
+                    },
+                    // 6. Sekmeli içerik (Tabs)
+                    'grapesjs-tabs': {
+                        // Tab bloklarının class öneki
+                        stylePrefix: 'tabs-',
+                        tabsBlock: {
+                             category: 'Extra'
                         }
-                    }
-                },
-
-                  list: {
-                    class: EditorjsList,
-                    inlineToolbar: true,
-                    config: {
-                        defaultStyle: 'unordered'
                     },
-                },
-
-                  checklist: {
-                    class: Checklist,
-                    inlineToolbar: true,
-                  },
-
-                  quote: {
-                    class: Quote,
-                    inlineToolbar: true,
-                    config: {
-                      quotePlaceholder: 'Enter a quote',
-                      captionPlaceholder: 'Quote\'s author',
+                    // 7. Özel HTML/JS kodu ekleme bileşeni
+                    'grapesjs-custom-code': {
+                         // Bileşenin paneldeki görünümü
+                         block: {
+                             category: 'Extra',
+                             label: 'Özel Kod',
+                         }
                     },
-                    shortcut: 'CMD+SHIFT+O'
-                  },
-
-                  warning: Warning,
-
-                  marker: {
-                    class:  Marker,
-                    shortcut: 'CMD+SHIFT+M'
-                  },
-
-                  code: {
-                    class:  CodeTool,
-                    shortcut: 'CMD+SHIFT+C'
-                  },
-
-                  delimiter: Delimiter,
-
-                  inlineCode: {
-                    class: InlineCode,
-                    shortcut: 'CMD+SHIFT+C'
-                  },
-
-                  linkTool: LinkTool,
-
-                  embed: Embed,
-
-                  table: {
-                    class: Table,
-                    inlineToolbar: true,
-                    shortcut: 'CMD+ALT+T'
-                  },
-
-                },
-                // Veritabanından gelen mevcut veriyi editöre yükleme
-                data: @Html.Raw(initialData),
-                onReady: () => {
-                  new Undo({ editor });
-                  new DragDrop(editor);
+                    // 8. Mobil cihazlar için dokunmatik desteği
+                    'grapesjs-touch': {},
+                    // 9. PostCSS ile stilleri ayrıştırma
+                    'grapesjs-parser-postcss': {},
+                    // 10. Elemanların üzerine gelince bilgi balonu gösterme
+                    'grapesjs-tooltip': {},
+                    // 11. TUI Resim Editörü entegrasyonu
+                    'grapesjs-tui-image-editor': {
+                         // Resim editörünün arayüz dili (en, tr, de...)
+                         locale: 'tr_TR',
+                         // Kullanılacak araçlar (crop, rotate, draw, text, mask...)
+                         // Tam listesi için TUI dokümantasyonuna bakınız.
+                         includeUI: {
+                             theme: 'dark' // 'white' veya 'dark'
+                         },
+                         // Resim editörü ikonlarının yolu (isteğe bağlı)
+                         // icons: { 'menu.normalIcon.path': '../path/to/icon.svg', ... }
+                    },
+                    // 12. Kendi kendine yazan metin efekti (Typed.js entegrasyonu)
+                    'grapesjs-typed': {
+                        block: {
+                            category: 'Extra',
+                            label: 'Yazı Animasyonu'
+                        }
+                    },
+                    // 13. Gelişmiş arkaplan stilleri (gradient, resim vb.)
+                    'grapesjs-style-bg': {}
                 }
+            });
+
+            window.grapesEditor = editor;
+
+            editor.on('asset:upload:response', (res) => {
+              const am = editor.AssetManager;
+              const toAbs = (u) => /^https?:\/\//i.test(u) ? u : new URL(u, window.location.origin).href;
+
+              let items = [];
+              if (Array.isArray(res?.data)) {
+                items = res.data.map(it => {
+                  const src = typeof it === 'string' ? it : it.src;
+                  return src ? { type: 'image', src: toAbs(src) } : null;
+                }).filter(Boolean);
+              } else if (res?.file?.url) {
+                items = [{ type: 'image', src: toAbs(res.file.url) }];
+              }
+
+              if (items.length) am.add(items);
+            });
+            
+
+            editor.on('load', () => {
+
+                const dc = editor.DomComponents;
+
+                dc.addType('tabs-autodetect', {
+                  extend: 'tabs',
+                  isComponent: el => {
+                    if (!el) return false;
+                    // data-gjs-type yoksa bile şu izlerden tanı:
+                    const hasRoot = el.classList?.contains('gjs-tabs');
+                    const hasHeader = el.querySelector?.('.tab-list');
+                    const hasPanels = el.querySelector?.('.tab-panels');
+                    return (hasRoot && hasHeader && hasPanels) ? { type: 'tabs-autodetect' } : false;
+                  }
+                });
+
+                const blockManager = editor.BlockManager;
+
+                // --- BAŞLIK (H1) BLOĞU EKLEME ---
+                blockManager.add('h1-block', {
+                    label: 'Başlık',
+                    category: 'Temel',
+                    // FontAwesome ikonu (isteğe bağlı, CSS'inizin FA desteklemesi gerekir)
+                    attributes: { class: 'fa fa-heading' },
+                    content: {
+                        type: 'text', // Temel metin bileşenini kullanır
+                        tagName: 'h1', // Etiketi h1 olarak ayarla
+                        content: 'Büyük Başlık', // Varsayılan içerik
+                        style: { padding: '10px' }, // Varsayılan stil
+                        activeOnRender: 1, // Eklendiğinde direkt düzenleme modunda açılsın
+                    }
+                });
+
+                // --- ALINTI (BLOCKQUOTE) BLOĞU EKLEME ---
+                blockManager.add('quote-block', {
+                    label: 'Alıntı',
+                    category: 'Temel',
+                    attributes: { class: 'fa fa-quote-left' },
+                    content: {
+                        tagName: 'blockquote',
+                        // GrapesJS'in bu bileşeni tanıması için özel tip ataması yapabiliriz
+                        attributes: { 'data-gjs-type': 'quote' },
+                        // blockquote içine sürükleme yapabilmek için droppable: true
+                        droppable: true,
+                        style: {
+                            'border-left': '3px solid #ccc',
+                            'padding-left': '20px',
+                            'margin': '20px 0',
+                            'font-style': 'italic'
+                        },
+                        // Alıntı içinde varsayılan olarak bir metin paragrafı olsun
+                        components: [
+                            {
+                                type: 'text',
+                                content: 'Burası ilham verici bir alıntı metnidir.',
+                            }
+                        ]
+                    }
+                });
+
             });
 
             // Form gönderilmeden önce editördeki veriyi gizli input'a yaz
@@ -316,21 +441,31 @@
                 saveButton.disabled = true;
                 saveButton.value = "Kaydediliyor...";
 
-                editor.save().then((outputData) => {
-                    // Gizli input alanına editör verisini JSON olarak yaz
-                    document.getElementById('content-output').value = JSON.stringify(outputData);
+                // GrapesJS'ten HTML ve CSS'i al
+                const finalHtml = editor.getHtml();
+                const finalCss = editor.getCss();
 
-                    // Veri yazıldıktan sonra formu programatik olarak gönder
-                    formElement.submit();
+                // Stilleri HTML'in içine gömerek tek bir içerik oluştur.
+                // Bu, içeriği başka bir yerde gösterirken stillerin kaybolmamasını sağlar.
+                const fullContent = `<style>${finalCss}</style>${finalHtml}`;
+                document.getElementById('content-output2').value = fullContent;
+                document.getElementById('content-output').value = '';
+                formElement.submit();
+                // editor.save().then((outputData) => {
+                //     // Gizli input alanına editör verisini JSON olarak yaz
+                //     document.getElementById('content-output').value = JSON.stringify(outputData);
 
-                }).catch((error) => {
-                    console.error('Kaydetme hatası:', error);
-                    alert('Yazı kaydedilirken bir hata oluştu. Lütfen konsolu kontrol edin.');
+                //     // Veri yazıldıktan sonra formu programatik olarak gönder
+                //     formElement.submit();
 
-                    // Hata durumunda butonu tekrar aktif hale getir
-                    saveButton.disabled = false;
-                    saveButton.value = (formElement.action.includes('Edit')) ? 'Kaydet' : 'Oluştur';
-                });
+                // }).catch((error) => {
+                //     console.error('Kaydetme hatası:', error);
+                //     alert('Yazı kaydedilirken bir hata oluştu. Lütfen konsolu kontrol edin.');
+
+                //     // Hata durumunda butonu tekrar aktif hale getir
+                //     saveButton.disabled = false;
+                //     saveButton.value = (formElement.action.includes('Edit')) ? 'Kaydet' : 'Oluştur';
+                // });
             });
 
             // String'in JSON olup olmadığını kontrol eden yardımcı fonksiyon
@@ -344,34 +479,11 @@
                 return true;
             }
 
-            new MultiBlockSelectionPlugin({
-                editor,
-                version: EditorJS.version,
-                onBeforeToolbarOpen(toolbar) {
-                    const dropdown = toolbar.querySelector('.ce-inline-toolbar__dropdown')
-                    if (dropdown instanceof HTMLElement) {
-                        dropdown.style.display = 'none'
-                    }
-                    // show only underline
-                    toolbar.querySelectorAll('[data-tool]:not([data-tool=underline])').forEach((el) => {
-                        if (!(el instanceof HTMLElement)) return
-                        el.style.display = 'none'
-                    })
-                },
-                onAfterToolbarClose(toolbar) {
-                    const dropdown = toolbar.querySelector('.ce-inline-toolbar__dropdown')
-                    if (dropdown instanceof HTMLElement) {
-                        dropdown.style.display = ''
-                    }
-                    toolbar.querySelectorAll('[data-tool]:not([data-tool=underline])').forEach((el) => {
-                        if (!(el instanceof HTMLElement)) return
-                        el.style.display = ''
-                    })
-                },
-            })
         });
+
     </script>
 
+    
     <script>
         document.addEventListener('DOMContentLoaded', function () {
 

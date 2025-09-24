@@ -88,7 +88,8 @@ namespace Dizgem.Controllers
                     file = new
                     {
                         url = publicUrl
-                    }
+                    },
+                    data = new[] { new { src = publicUrl, type = "image" } }
                 };
 
                 return Ok(response);

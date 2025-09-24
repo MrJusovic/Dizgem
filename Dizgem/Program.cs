@@ -146,6 +146,7 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedAttributes.Add("name"); 
     sanitizer.AllowedAttributes.Add("id"); 
     sanitizer.AllowedAttributes.Add("media"); 
+    sanitizer.AllowedAttributes.Add("data-gjs-type"); 
 
 
     // Yapýlandýrýlmýþ sanitizer nesnesini döndürüyoruz.
