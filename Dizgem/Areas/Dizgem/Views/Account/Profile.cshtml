@@ -1,0 +1,179 @@
+﻿@model ProfileViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<h4>@ViewData["Title"]</h4>
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-area="Dizgem" asp-action="Profile" asp-controller="Account" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group mb-3">
+                <label asp-for="DisplayName" class="form-label"></label>
+                <input asp-for="DisplayName" class="form-control" />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" disabled />
+                <input type="hidden" asp-for="Email" />
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="NewPassword" class="form-label"></label>
+                <input asp-for="NewPassword" class="form-control" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Profili Güncelle</button>
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        <h5>Güvenlik Ayarları</h5>
+        <hr />
+        @if (Model.Is2faEnabled)
+        {
+            <div class="alert alert-success">İki faktörlü kimlik doğrulama (2FA) <strong>etkin.</strong></div>
+            <button id="disable2faBtn" class="btn btn-danger">2FA'yı Devre Dışı Bırak</button>
+        }
+        else
+        {
+            <div class="alert alert-warning">İki faktörlü kimlik doğrulama (2FA) <strong>etkin değil.</strong></div>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#setup2faModal">2FA'yı Etkinleştir</button>
+        }
+    </div>
+</div>
+
+<!-- 2FA Kurulum Modal -->
+<div class="modal fade" id="setup2faModal" tabindex="-1" aria-labelledby="setup2faModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="setup2faModalLabel">İki Faktörlü Kimlik Doğrulamayı Etkinleştir</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Adım 1: QR Kod Gösterme -->
+                <div id="step1">
+                    <p>Uygulamanızı kullanarak aşağıdaki QR kodunu tarayın ve oluşturulan 6 haneli kodu girin.</p>
+                    <div class="text-center">
+                        <div id="qrcode" class="mb-3"></div>
+                        <p>Manuel Kod: <code id="manualKey"></code></p>
+                    </div>
+                    <form id="verifyCodeForm">
+                        <div class="form-group">
+                            <label for="verificationCode">Doğrulama Kodu</label>
+                            <input type="text" id="verificationCode" class="form-control" placeholder="123456" />
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3 w-100">Doğrula ve Etkinleştir</button>
+                    </form>
+                </div>
+                <!-- Adım 2: Kurtarma Kodları -->
+                <div id="step2" style="display:none;">
+                    <h5>Kurtarma Kodları</h5>
+                    <p>2FA cihazınıza erişiminizi kaybederseniz, bu kodları kullanarak hesabınıza erişebilirsiniz. Lütfen bu kodları güvenli bir yere kaydedin.</p>
+                    <ul id="recoveryCodesList" class="list-group"></ul>
+                    <button class="btn btn-success mt-3 w-100" onclick="location.reload()">Tamamlandı</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const setupModal = new bootstrap.Modal(document.getElementById('setup2faModal'));
+            const verifyCodeForm = document.getElementById('verifyCodeForm');
+            const verificationCodeInput = document.getElementById('verificationCode');
+            const disable2faBtn = document.getElementById('disable2faBtn');
+            const antiForgeryToken = '@Xsrf.GetAndStoreTokens(Context).RequestToken';
+            var authenticatorUri = '';
+            var sharedKey = '';
+
+            // Modal açıldığında QR kod bilgilerini al
+            document.getElementById('setup2faModal').addEventListener('show.bs.modal', function () {
+                fetch('/Dizgem/Manage/GetAuthenticatorSetupInfo')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('qrcode').innerHTML = '';
+                        new QRCode(document.getElementById('qrcode'), {
+                            text: data.authenticatorUri,
+                            width: 128,
+                            height: 128
+                        });
+                        authenticatorUri = data.authenticatorUri;
+                        sharedKey = data.sharedKey;
+                        document.getElementById('manualKey').textContent = data.sharedKey;
+                    });
+            });
+
+            // Doğrulama kodunu gönderme
+            verifyCodeForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const code = verificationCodeInput.value;
+
+                fetch('/Dizgem/Manage/VerifyAuthenticatorCode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': antiForgeryToken
+                    },
+                    body: JSON.stringify({ code: code, SharedKey: sharedKey, authenticatorUri : authenticatorUri })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const recoveryList = document.getElementById('recoveryCodesList');
+                        recoveryList.innerHTML = '';
+                        result.recoveryCodes.forEach(code => {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item';
+                            li.textContent = code;
+                            recoveryList.appendChild(li);
+                        });
+                        document.getElementById('step1').style.display = 'none';
+                        document.getElementById('step2').style.display = 'block';
+                    } else {
+                        verificationCodeInput.classList.add('is-invalid');
+                        verificationCodeInput.nextElementSibling.textContent = result.message;
+                    }
+                });
+            });
+
+            // 2FA'yı devre dışı bırakma
+            if (disable2faBtn) {
+                disable2faBtn.addEventListener('click', function() {
+                    if (confirm('İki faktörlü kimlik doğrulamayı devre dışı bırakmak istediğinizden emin misiniz?')) {
+                        fetch('/Dizgem/Manage/Disable2fa', {
+                            method: 'POST',
+                            headers: { 'RequestVerificationToken': antiForgeryToken }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if(result.success) {
+                                location.reload();
+                            } else {
+                                alert('Bir hata oluştu.');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    </script>
+}

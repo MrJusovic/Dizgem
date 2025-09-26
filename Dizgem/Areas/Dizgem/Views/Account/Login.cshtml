@@ -5,10 +5,12 @@
 
 <!DOCTYPE html>
 
-<html>
+<html data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical" dir="ltr" lang="tr">
 <head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Login</title>
+    <meta charset="utf-8" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Dizgem Login</title>
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" type="text/css" media="all" />
     <link rel="stylesheet" href="~/css/site.css" type="text/css" media="all" />
@@ -44,19 +46,10 @@
                                     <!-- Dark Logo icon -->
                                     <img src="~/images/dizgem-logo.png" alt="Dizgem CRM" style="max-width: 60px;" />
                                 </b>
-                                <!--End Logo icon -->
-                                <!-- Logo text -->
-                                <!--<span class="logo-text">-->
-                                <!-- dark Logo text -->
-                                <!--<img src="../assets/images/logos/logo-text.svg" alt="homepage" class="dark-logo ps-2" />
-                                </span>-->
                             </a>
                             <div class="d-none d-xl-flex align-items-center justify-content-center h-n80">
                                 <img src="~/images/login-security.png" alt="Dizgem CRM" class="img-fluid" width="500" />
                             </div>
-                            @*<div class="obj-left d-none d-md-block">
-                                    <img src="../assets/images/backgrounds/leaf-left.png" alt="img" />
-                                </div>*@
                         </div>
                         <div class="col-xl-5 col-xxl-4 col-md-8 mt-5 mt-lg-0 bg-lg-white">
                             <div class="authentication-login auth-card-login min-vh-100 min-height-auto bg-white row justify-content-center align-items-center p-4 mx-3 mx-lg-auto mt-5 mt-sm-0">
@@ -77,7 +70,7 @@
                                         <div class="d-sm-flex align-items-center justify-content-between mb-4">
                                             <div class="form-check">
                                                 @Html.CheckBoxFor(x => x.RememberMe, new { @class = "form-check-input primary" })
-                                                <label class="form-check-label text-dark" for="flexCheckChecked" data-beni-hatirla>
+                                                <label class="form-check-label text-dark" for="RememberMe" data-beni-hatirla>
                                                     Beni Hatırla
                                                 </label>
                                             </div>

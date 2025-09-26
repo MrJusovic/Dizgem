@@ -1,20 +1,22 @@
 using Dizgem;
 using Dizgem.Data;
+using Dizgem.Filters;
 using Dizgem.Middleware;
 using Dizgem.Models;
 using Dizgem.Services;
 using Ganss.Xss;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using System;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -217,11 +219,13 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, CustomUserClaimsPrincipalFactory>();
+
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     // Cookie'nin temel ayarlarý
     options.Cookie.HttpOnly = true;
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(180);
 
     // Giriþ yapýlmamýþsa (401 Unauthorized) yönlendirilecek sayfa.
     // Projenizde bir AccountController ve Login action'ý olduðunu varsayýyoruz.
@@ -231,10 +235,16 @@ builder.Services.ConfigureApplicationCookie(options =>
     // Örneðin normal bir kullanýcýnýn admin paneline girmeye çalýþmasý.
     options.AccessDeniedPath = "/Dizgem/Account/AccessDenied";
 
+    // Kullanýcýnýn güvenlik damgasýnýn ne sýklýkla kontrol edileceðini belirler.
+    // Bu, rolleri veya claim'leri deðiþen bir kullanýcýnýn oturumunun
+    // otomatik olarak güncellenmesini saðlar.
     options.SlidingExpiration = true;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(180);
 });
 
 // Tema Ayarlarý için kullanýlan scope
+builder.Services.AddScoped<Ensure2faFilter>();
+builder.Services.AddScoped<CustomUserClaimsPrincipalFactory>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IPageService, PageService>();
