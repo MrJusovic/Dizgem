@@ -17,7 +17,7 @@ namespace Dizgem.Services
 
             // 2. &nbsp; gibi HTML entity'lerini düz karaktere çevir
             plainText = HttpUtility.HtmlDecode(plainText);
-
+            plainText = RemoveScriptsAndStyles(plainText);
             // 3. Satır sonlarını ve fazla boşlukları tek boşluğa indir
             plainText = Regex.Replace(plainText, @"\s+", " ").Trim();
 
@@ -36,6 +36,22 @@ namespace Dizgem.Services
 
             // Boşluk bulunamazsa, metni doğrudan kes
             return plainText.Substring(0, maxLength) + "...";
+        }
+
+        private readonly Regex ScriptBlock = new(
+        @"<script\b[^>]*>[\s\S]*?</script>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private readonly Regex StyleBlock = new(
+            @"<style\b[^>]*>[\s\S]*?</style>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        public string RemoveScriptsAndStyles(string html)
+        {
+            if (string.IsNullOrEmpty(html)) return html;
+            html = ScriptBlock.Replace(html, string.Empty);
+            html = StyleBlock.Replace(html, string.Empty);
+            return html;
         }
     }
 }
