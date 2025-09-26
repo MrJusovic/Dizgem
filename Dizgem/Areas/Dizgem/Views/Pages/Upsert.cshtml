@@ -44,7 +44,7 @@
 }
 <h3>@ViewData["Title"]</h3>
 <hr />
-<form asp-area="Dizgem" asp-controller="Pages" asp-action="Upsert" method="post" class="form row">
+<form asp-area="Dizgem" asp-controller="Pages" asp-action="Upsert" method="post" class="form row" onkeydown="return event.key !== 'Enter';">
 
     <div class="col-md-8">
         <input type="hidden" asp-for="Post.Id" />
@@ -201,7 +201,7 @@
     <script src="~/lib/grapes/grapesjs-typed.js"></script>
     <script src="~/lib/grapes/grapesjs-style-bg.js"></script>
     <script src="~/lib/grapes/grapesjs-component-code-editor.min.js"></script>
-
+    <script src="~/lib/grapes/grapesjs-blocks-bootstrap-5.min.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', (event) => {
 
@@ -251,6 +251,7 @@
                 },
                 plugins: [
                     'grapesjs-preset-webpage',
+                    'grapesjs-blocks-bootstrap-5',
                     'gjs-blocks-basic',
                     'grapesjs-plugin-forms',
                     'grapesjs-component-countdown',
@@ -273,6 +274,18 @@
                         modalImportContent: editor => editor.getHtml(),
                         // İstemediğiniz blokları buradan kaldırabilirsiniz
                         // blocks: ['link-block', 'quote', 'text-basic'],
+                    },
+                    'grapesjs-blocks-bootstrap5': {
+                        blocks: {
+                            // ...
+                        },
+                        blockCategories: {
+                            // ...
+                        },
+                        labels: {
+                            // ...
+                        },
+                    // ...
                     },
                     // 2. Temel bloklar (Sütunlar, resim, metin vs.)
                     'gjs-blocks-basic': {
@@ -351,6 +364,16 @@
                     },
                     // 13. Gelişmiş arkaplan stilleri (gradient, resim vb.)
                     'grapesjs-style-bg': {}
+                },
+                canvas: {
+                  styles: [
+                    '/lib/bootstrap/dist/css/bootstrap.min.css'
+                  ],
+                  scripts: [
+                    '/lib/jquery/dist/jquery.min.js',
+                    '/lib/bootstrap/dist/js/popper.min.js',
+                    '/lib/bootstrap/dist/js/bootstrap.bundle.min.js'
+                  ],
                 }
             });
 
