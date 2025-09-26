@@ -22,4 +22,18 @@ public static class ClaimsPrincipalExtensions
         // Bulursa onun değerini, bulamazsa varsayılan kullanıcı adını (UserName) döndürür.
         return displayNameClaim?.Value ?? principal.Identity?.Name ?? "";
     }
+
+    public static string GetEmail(this ClaimsPrincipal principal)
+    {
+        if (principal == null)
+        {
+            return string.Empty;
+        }
+
+        // Önce "DisplayName" claim'ini arar.
+        var displayNameClaim = principal.FindFirst(x=> x.Type.Contains("emailaddress"));
+
+        // Bulursa onun değerini, bulamazsa varsayılan kullanıcı adını (UserName) döndürür.
+        return displayNameClaim?.Value ?? principal.Identity?.Name ?? "";
+    }
 }
