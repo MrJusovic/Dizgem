@@ -174,7 +174,7 @@ namespace Dizgem.Services
             var getExcerpt = string.IsNullOrWhiteSpace(page.Excerpt) ? page.Content : page.Excerpt;
             page.Excerpt = _excerptService.GenerateExcerpt(getExcerpt);
 
-            page.Slug = await _slugService.GenerateUniqueSlugAsync(page.Title, page.Slug, page.Id);
+            page.Slug = await _slugService.GenerateUniqueSlugAsync(page.Title, page.Slug, page.Id, "page");
             _seoService.EnsureSeoFields(page);
         }
 

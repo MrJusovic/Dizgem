@@ -44,7 +44,7 @@
 }
 <h3>@ViewData["Title"]</h3>
 <hr />
-<form asp-area="Dizgem" asp-controller="Pages" asp-action="Upsert" method="post" class="form row" onkeydown="return event.key !== 'Enter';">
+<form id="dizgemMainform" asp-area="Dizgem" asp-controller="Pages" asp-action="Upsert" method="post" class="form row" onkeydown="return event.key !== 'Enter';">
 
     <div class="col-md-8">
         <input type="hidden" asp-for="Post.Id" />
@@ -478,7 +478,7 @@
             // Form gönderilmeden önce editördeki veriyi gizli input'a yaz
             // Formu ve kaydet butonunu DOM'dan alıyoruz
             const saveButton = document.getElementById('save-button');
-            const formElement = saveButton.closest('form');
+            const formElement = document.getElementById('dizgemMainform');
 
             // Butona tıklandığında çalışacak kodu tanımlıyoruz
             saveButton.addEventListener('click', function(e) {

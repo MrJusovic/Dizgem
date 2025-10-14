@@ -37,6 +37,7 @@ namespace Dizgem.Services
             return entityType.ToLower() switch
             {
                 "post" => await _context.Posts.AnyAsync(p => p.Slug == slug && p.Id != entityId),
+                "page" => await _context.Pages.AnyAsync(p => p.Slug == slug && p.Id != entityId),
                 "category" => await _context.Categories.AnyAsync(c => c.Slug == slug && c.Id != entityId),
                 "tag" => await _context.Tags.AnyAsync(t => t.Slug == slug && t.Id != entityId),
                 _ => false, // Tanımsız bir tip gelirse false dön

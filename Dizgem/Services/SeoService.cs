@@ -49,6 +49,14 @@ namespace Dizgem.Services
                     post.SeoDescription = post.SeoDescription.Substring(0, 157) + "...";
                 }
             }
+
+            if (string.IsNullOrWhiteSpace(post.SeoKeywords))
+            {
+                // Özet alanı da boşsa, ana içerikten oluşturmayı deneyebiliriz.
+                // Bu örnekte, daha önce oluşturulmuş Excerpt alanını kullanıyoruz.
+                post.SeoKeywords = string.Format("{0}", string.Join(",", post.PageTags?.Select(x => x.Tag.Name).ToList()));
+
+            }
         }
 
         /// <summary>

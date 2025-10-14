@@ -22,7 +22,6 @@ static void ApplyUpdateIfAvailable()
     var flagPath = Path.Combine(rootPath, "update.flag");
     var updateSourcePath = Path.Combine(rootPath, "_update", "new_version");
 
-    // Güncelleme bayraðý yoksa herhangi bir iþlem yapma
     if (!File.Exists(flagPath))
     {
         return;
@@ -30,41 +29,82 @@ static void ApplyUpdateIfAvailable()
 
     try
     {
-        // GitHub'dan indirilen zip dosyasý genellikle repo adýyla bir alt klasör içerir.
-        // Bu yüzden, zip'ten çýkarýlan klasörün içindeki doðru kaynak klasörünü bulmalýyýz.
         var sourceDirectory = Directory.GetDirectories(updateSourcePath).FirstOrDefault();
         if (sourceDirectory == null || !Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
         {
-            // Eðer alt klasör yoksa veya boþsa, direkt ana klasörü kaynak olarak kullan
             sourceDirectory = updateSourcePath;
         }
 
-        // Yeni dosyalarý mevcutlarýn üzerine kopyala
         foreach (var file in Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceDirectory, file);
             var destinationPath = Path.Combine(rootPath, relativePath);
-
-            // Dosyanýn yazýlacaðý klasörün var olduðundan emin ol
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
-
             File.Copy(file, destinationPath, true);
         }
     }
     catch
     {
-        // Güncelleme sýrasýnda bir hata olursa, en azýndan bayraðý silip
-        // uygulamanýn bir sonraki sefer normal baþlamasýný saðlamaya çalýþ.
-    }
-    finally
-    {
-        // Güncelleme iþlemi bittikten (veya hata verdikten) sonra
-        // geçici dosyalarý ve bayraðý temizle.
+        // Dosya kopyalama baþarýsýz olursa, iþlemi geri al ve temizle.
         if (Directory.Exists(Path.Combine(rootPath, "_update")))
         {
             Directory.Delete(Path.Combine(rootPath, "_update"), true);
         }
-        File.Delete(flagPath);
+        if (File.Exists(flagPath))
+        {
+            File.Delete(flagPath);
+        }
+    }
+    // Baþarýlý olursa temizlik yapýlmaz, bayrak dosyasý býrakýlýr.
+}
+
+// 2. ADIM: Veritabaný migration'ýný uygular ve geçici dosyalarý temizler.
+static void ApplyMigrationsAndCleanup(IHost app)
+{
+    var rootPath = Directory.GetCurrentDirectory();
+    var flagPath = Path.Combine(rootPath, "update.flag");
+
+    // Sadece bir güncelleme yapýldýysa bu bloðu çalýþtýr.
+    if (!File.Exists(flagPath))
+    {
+        return;
+    }
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            logger.LogInformation("Güncelleme bayraðý bulundu. Veritabaný migration'larý uygulanýyor...");
+            var dbContext = services.GetRequiredService<ApplicationDbContext>();
+            var csProvider = services.GetRequiredService<IConnectionStringProvider>();
+
+            if (!string.IsNullOrWhiteSpace(csProvider.Current))
+            {
+                dbContext.Database.Migrate();
+                logger.LogInformation("Veritabaný migration'larý baþarýyla uygulandý.");
+            }
+            else
+            {
+                logger.LogWarning("Migration atlanýyor: Veritabaný baðlantýsý bulunamadý.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Güncelleme sonrasý veritabaný migration'ý sýrasýnda bir hata oluþtu.");
+        }
+        finally
+        {
+            // Ýþlem baþarýlý da olsa baþarýsýz da olsa güncelleme dosyalarýný ve bayraðýný temizle.
+            logger.LogInformation("Güncelleme dosyalarý temizleniyor.");
+            if (Directory.Exists(Path.Combine(rootPath, "_update")))
+            {
+                Directory.Delete(Path.Combine(rootPath, "_update"), true);
+            }
+            File.Delete(flagPath);
+        }
     }
 }
 
@@ -320,6 +360,8 @@ builder.Services.AddScoped<IUpdateService, UpdateService>();
 
 
 var app = builder.Build();
+
+ApplyMigrationsAndCleanup(app);
 
 // -----------------------------
 // Middleware Pipeline

@@ -12,6 +12,13 @@ namespace Dizgem.Services
                 return string.Empty;
             }
 
+            string regexScript = @"<script\b[^>]*>[\s\S]*?</script>";
+            htmlContent = Regex.Replace(htmlContent, regexScript, string.Empty, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+            string regexStyle = @"<style\b[^>]*>[\s\S]*?</style>";
+            htmlContent = Regex.Replace(htmlContent, regexStyle, string.Empty, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+
             // 1. HTML etiketlerini temizle
             string plainText = Regex.Replace(HttpUtility.HtmlDecode(htmlContent), "<.*?>", string.Empty);
 
