@@ -13,6 +13,68 @@ using Microsoft.Extensions.FileProviders;
 using Serilog;
 using System;
 
+// UYGULAMA BAÞLANGIÇ NOKTASI
+
+// Güncelleme kontrolünü ve iþlemini yapacak statik metot
+static void ApplyUpdateIfAvailable()
+{
+    var rootPath = Directory.GetCurrentDirectory();
+    var flagPath = Path.Combine(rootPath, "update.flag");
+    var updateSourcePath = Path.Combine(rootPath, "_update", "new_version");
+
+    // Güncelleme bayraðý yoksa herhangi bir iþlem yapma
+    if (!File.Exists(flagPath))
+    {
+        return;
+    }
+
+    try
+    {
+        // GitHub'dan indirilen zip dosyasý genellikle repo adýyla bir alt klasör içerir.
+        // Bu yüzden, zip'ten çýkarýlan klasörün içindeki doðru kaynak klasörünü bulmalýyýz.
+        var sourceDirectory = Directory.GetDirectories(updateSourcePath).FirstOrDefault();
+        if (sourceDirectory == null || !Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
+        {
+            // Eðer alt klasör yoksa veya boþsa, direkt ana klasörü kaynak olarak kullan
+            sourceDirectory = updateSourcePath;
+        }
+
+        // Yeni dosyalarý mevcutlarýn üzerine kopyala
+        foreach (var file in Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var destinationPath = Path.Combine(rootPath, relativePath);
+
+            // Dosyanýn yazýlacaðý klasörün var olduðundan emin ol
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+
+            File.Copy(file, destinationPath, true);
+        }
+    }
+    catch
+    {
+        // Güncelleme sýrasýnda bir hata olursa, en azýndan bayraðý silip
+        // uygulamanýn bir sonraki sefer normal baþlamasýný saðlamaya çalýþ.
+    }
+    finally
+    {
+        // Güncelleme iþlemi bittikten (veya hata verdikten) sonra
+        // geçici dosyalarý ve bayraðý temizle.
+        if (Directory.Exists(Path.Combine(rootPath, "_update")))
+        {
+            Directory.Delete(Path.Combine(rootPath, "_update"), true);
+        }
+        File.Delete(flagPath);
+    }
+}
+
+// === GÜNCELLEMEYÝ UYGULA ===
+// Bu komut, Program.cs'deki diðer her þeyden önce çalýþmalýdýr.
+ApplyUpdateIfAvailable();
+
+
+
+
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -254,6 +316,7 @@ builder.Services.AddScoped<IExcerptService, ExcerptService>();
 builder.Services.AddScoped<ISeoService, SeoService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
+builder.Services.AddScoped<IUpdateService, UpdateService>();
 
 
 var app = builder.Build();

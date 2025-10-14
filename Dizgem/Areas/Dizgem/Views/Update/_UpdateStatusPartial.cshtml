@@ -1,0 +1,50 @@
+﻿@model UpdateCheckViewModel
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <strong>Hata:</strong> @Model.ErrorMessage
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Sürüm Bilgileri</h5>
+            <p><strong>Mevcut Sürüm:</strong> <code>@Model.CurrentVersion</code></p>
+            <p><strong>En Son Sürüm:</strong> <code>@Model.LatestVersion</code></p>
+        </div>
+    </div>
+
+    @if (Model.IsUpdateAvailable)
+    {
+        <div class="alert alert-success mt-3">
+            <strong>Yeni bir güncelleme mevcut! (@Model.LatestVersion)</strong>
+            <p>Sisteminizi güncel tutmak, güvenlik ve performans için önemlidir.</p>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                Sürüm Notları
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                @* Release notlarını Markdown'dan HTML'e çeviren bir kütüphane kullanmak daha iyi olur, şimdilik pre ile gösterelim *@
+                <pre>@Model.ReleaseNotes</pre>
+            </div>
+        </div>
+
+        <form asp-action="StartUpdate" method="post" class="mt-3">
+            <input type="hidden" name="downloadUrl" value="@Model.DownloadUrl" />
+            <button id="start-update-btn" data-url="@Model.DownloadUrl" class="btn btn-success btn-lg">
+                <i class="fas fa-download"></i> Şimdi Güncelle
+            </button>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-info mt-3">
+            <strong>Sisteminiz güncel!</strong>
+            <p>Dizgem CMS'in en son sürümünü kullanıyorsunuz.</p>
+        </div>
+    }
+}

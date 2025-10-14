@@ -3,5 +3,69 @@
     ViewData["Title"] = "Index";
 }
 
-<h1>Index</h1>
+<div id="update-status-container">
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <p>Güncellemeler kontrol ediliyor...</p>
+    </div>
+</div>
 
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('update-status-container');
+            const antiForgeryToken = '@Xsrf.GetAndStoreTokens(Context).RequestToken';
+
+            function checkForUpdates() {
+                fetch('/Dizgem/Update/CheckForUpdate', { method: 'POST' })
+                    .then(response => response.text())
+                    .then(html => {
+                        container.innerHTML = html;
+                    })
+                    .catch(error => {
+                        container.innerHTML = '<div class="alert alert-danger">Güncellemeler kontrol edilirken bir hata oluştu.</div>';
+                        console.error('Error:', error);
+                    });
+            }
+
+            document.body.addEventListener('click', function(event) {
+                if (event.target && event.target.id === 'start-update-btn') {
+                    event.preventDefault();
+                    const btn = event.target;
+                    const downloadUrl = btn.dataset.url;
+
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Güncelleme hazırlanıyor...';
+
+                    fetch('/Dizgem/Update/StartUpdate', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': antiForgeryToken
+                        },
+                        body: new URLSearchParams({ 'downloadUrl': downloadUrl })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                         btn.classList.remove('btn-success');
+                         btn.classList.add('btn-info');
+                         btn.innerHTML = 'Uygulama yeniden başlatılıyor, lütfen bekleyin...';
+                         // Sayfanın belirli bir süre sonra yenilenmesini sağla
+                         setTimeout(() => window.location.reload(), 20000); // 20 saniye sonra
+                    })
+                    .catch(error => {
+                        alert('Güncelleme başlatılırken bir hata oluştu!');
+                        btn.disabled = false;
+                        btn.innerHTML = 'Şimdi Güncelle';
+                        console.error('Error:', error);
+                    });
+                }
+            });
+
+            // Sayfa yüklendiğinde güncellemeleri kontrol et
+            checkForUpdates();
+        });
+    </script>
+}
