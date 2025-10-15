@@ -9,6 +9,9 @@ namespace Dizgem.Models
     public class SettingsViewModel
     {
         // --- Genel Site Ayarları ---
+        [Display(Name = "Sayfa Bağlantısı")]
+        public string SiteUrl { get; set; } = "";
+        // --- Genel Site Ayarları ---
         [Display(Name = "Site Başlığı")]
         public string SiteTitle { get; set; } = "Dizgem";
 

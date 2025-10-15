@@ -20,7 +20,7 @@ namespace Dizgem.Services
 
             // 2. Adım: Benzersizliği Kontrol Et ve Gerekirse Sonuna Ek Yap
             string finalSlug = baseSlug;
-            int counter = 1;
+            int counter = 2;
 
             while (await IsSlugExistsAsync(finalSlug, entityId, entityType))
             {

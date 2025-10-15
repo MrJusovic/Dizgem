@@ -23,6 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Api\Data\" />
+    <Folder Include="Areas\Api\Models\" />
+    <Folder Include="Areas\Api\Views\" />
     <Folder Include="Areas\Dizgem\Data\" />
     <Folder Include="Areas\Dizgem\Models\" />
     <Folder Include="Themes\" />

@@ -174,7 +174,7 @@ namespace Dizgem.Services
             post.Excerpt = _excerptService.GenerateExcerpt(getExcerpt);
 
             post.Slug = await _slugService.GenerateUniqueSlugAsync(post.Title, post.Slug, post.Id);
-            _seoService.EnsureSeoFields(post);
+            _seoService.EnsureSeoFields(post, model.TagsString);
         }
 
         private async Task UpdatePostRelations(Guid postId, PostEditViewModel<Post> model)

@@ -9,7 +9,7 @@ namespace Dizgem.Services
         /// ve boş ise otomatik olarak doldurur.
         /// </summary>
         /// <param name="post">İşlem görecek Post nesnesi.</param>
-        void EnsureSeoFields(Post post);
-        void EnsureSeoFields(Page post);
+        void EnsureSeoFields(Post post, string tags);
+        void EnsureSeoFields(Page post, string tags);
     }
 }

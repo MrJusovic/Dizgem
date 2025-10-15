@@ -2,6 +2,7 @@
 using Dizgem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.IO.Compression;
 using System.Text.Json;
 
 namespace Dizgem.Services
@@ -126,6 +127,105 @@ namespace Dizgem.Services
             _memoryCache.Set(ActiveThemeCacheKey, activeTheme?.Value ?? "Default", System.TimeSpan.FromHours(1));
 
             return activeTheme?.Value ?? "Default"; // Varsayılan bir tema adı döndür
+        }
+
+        public async Task<(bool Success, string Message)> InstallThemeAsync(IFormFile themeZipFile)
+        {
+            if (themeZipFile == null || themeZipFile.Length == 0)
+                return (false, "Lütfen bir dosya seçin.");
+
+            if (Path.GetExtension(themeZipFile.FileName).ToLowerInvariant() != ".zip")
+                return (false, "Lütfen geçerli bir .zip dosyası yükleyin.");
+
+            var themesRootPath = Path.Combine(_hostingEnvironment.ContentRootPath, "Themes");
+            var tempExtractPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                Directory.CreateDirectory(tempExtractPath);
+
+                using (var stream = themeZipFile.OpenReadStream())
+                {
+                    using (var archive = new ZipArchive(stream))
+                    {
+                        archive.ExtractToDirectory(tempExtractPath, true);
+                    }
+                }
+
+                var extractedDirectories = Directory.GetDirectories(tempExtractPath);
+                string themeSourcePath;
+
+                if (extractedDirectories.Length == 1 && File.Exists(Path.Combine(extractedDirectories[0], "theme.json")))
+                {
+                    themeSourcePath = extractedDirectories[0];
+                }
+                else if (File.Exists(Path.Combine(tempExtractPath, "theme.json")))
+                {
+                    themeSourcePath = tempExtractPath;
+                }
+                else
+                {
+                    return (false, "Yüklenen .zip dosyası geçerli bir tema yapısı içermiyor (theme.json bulunamadı).");
+                }
+
+                var themeName = new DirectoryInfo(themeSourcePath).Name;
+                var finalThemePath = Path.Combine(themesRootPath, themeName);
+
+                if (Directory.Exists(finalThemePath))
+                {
+                    return (false, $"'{themeName}' adında bir tema zaten mevcut.");
+                }
+
+                Directory.Move(themeSourcePath, finalThemePath);
+
+                return (true, $"'{themeName}' teması başarıyla yüklendi.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Tema yüklenirken bir hata oluştu: {ex.Message}");
+            }
+            finally
+            {
+                if (Directory.Exists(tempExtractPath))
+                {
+                    Directory.Delete(tempExtractPath, true);
+                }
+            }
+        }
+
+        public async Task<(bool Success, string Message)> DeleteThemeAsync(string themeName)
+        {
+            if (string.IsNullOrWhiteSpace(themeName))
+                return (false, "Geçersiz tema adı.");
+
+            var activeThemeName = await GetActiveThemeNameAsync();
+            if (string.Equals(activeThemeName, themeName, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Aktif olan bir tema silinemez.");
+            }
+
+            // "Default" temanın silinmesini engellemek iyi bir güvenlik önlemidir.
+            if (string.Equals(themeName, "Default", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Varsayılan tema silinemez.");
+            }
+
+            var themePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Themes", themeName);
+
+            if (!Directory.Exists(themePath))
+            {
+                return (false, "Silinecek tema klasörü bulunamadı.");
+            }
+
+            try
+            {
+                Directory.Delete(themePath, true);
+                return (true, $"'{themeName}' teması başarıyla silindi.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Tema silinirken bir hata oluştu: {ex.Message}");
+            }
         }
     }
 }

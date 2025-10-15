@@ -27,9 +27,43 @@
     </style>
 }
 
-<h3 class=" mb-4">Temalar</h3>
-<p class="text-muted">Yüklü temaları yönetin ve sitenizin görünümünü değiştirin.</p>
-<hr />
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Tema Yönetimi</h4>
+</div>
+
+<!-- Bildirim Mesajları -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Yeni Tema Yükleme Formu -->
+<div class="card mb-4">
+    <div class="card-header">
+        Yeni Tema Yükle
+    </div>
+    <div class="card-body">
+        <p>Yeni bir Dizgem temasını <code>.zip</code> formatında yükleyerek sisteme kurabilirsiniz.</p>
+        <form asp-action="UploadTheme" asp-controller="Themes" asp-area="Dizgem" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="input-group">
+                <input type="file" class="form-control" name="themeFile" id="themeFile" accept=".zip" required>
+                <button class="btn btn-primary" type="submit">Şimdi Yükle</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 
 <div class="row g-4">
@@ -67,7 +101,7 @@
                     }
                     else
                     {
-                        <form asp-area="Dizgem" asp-controller="Home" asp-action="ActivateTheme" method="post" class="d-grid">
+                        <form asp-area="Dizgem" asp-controller="Themes" asp-action="Activate" method="post" class="d-grid">
                             <input type="hidden" name="themeName" value="@theme.DirectoryName" />
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-primary">Etkinleştir</button>

@@ -12,27 +12,55 @@ namespace Dizgem.Helpers
     /// </summary>
     public static class DizgemHelper
     {
+
+        // --- 1. RAZOR TARAFINDAN ÇAĞRILACAK YENİ GENEL METOT ---
+        // Bu metot, Model'i 'dynamic' olarak kabul eder ve tip kontrolünü kendi yapar.
+        public static IHtmlContent CreateMetaTags(ISettingsService settingsService, HttpRequest request, dynamic? model = null)
+        {
+            // Gelen 'model'in, SEO için gerekli özelliklere sahip olup olmadığını kontrol et.
+            // 'model' bir Post veya Page nesnesi ise (yani ISeoContent implement ediyorsa), 
+            // onu 'seoContent' değişkenine ata.
+            if (model is ISeoContent seoContent)
+            {
+                // Eğer uyumluysa, asıl işi yapan private metoda bu nesneyi gönder.
+                return CreateMetaTagsInternal(settingsService, request, seoContent);
+            }
+            else
+            {
+                // Eğer model uyumsuzsa veya null ise, private metoda 'content' parametresini null olarak gönder.
+                // Bu durumda T tipini açıkça belirtmemiz gerekir.
+                return CreateMetaTagsInternal<ISeoContent>(settingsService, request, null);
+            }
+        }
+
         /// <summary>
         /// Mevcut sayfa için standart ve sosyal medya SEO meta etiketlerini oluşturur.
         /// </summary>
         /// <param name="settingsService">Ayarlar servisi.</param>
         /// <param name="request">Mevcut HTTP isteği.</param>
         /// <param name="post">Eğer bir yazı detay sayfası ise ilgili Post nesnesi.</param>
-        public static IHtmlContent CreateMetaTags(ISettingsService settingsService, HttpRequest request, Post? post = null)
+        private static IHtmlContent CreateMetaTagsInternal<T>(ISettingsService settingsService, HttpRequest request, T? content = null) where T : class, ISeoContent // T, ISeoContent arayüzünü implement etmeli
         {
             var settings = settingsService.Current;
             var sb = new StringBuilder();
 
+            // content nesnesi artık Page veya Post olabilir, ISeoContent üzerinden erişim yapıyoruz.
+
             // --- Temel Değerleri Belirleme ---
-            string title = !string.IsNullOrWhiteSpace(post?.SeoTitle) ? post.SeoTitle : settings.SiteTitle;
-            string description = !string.IsNullOrWhiteSpace(post?.SeoDescription) ? post.SeoDescription : settings.SiteDescription;
-            string keywords = post?.SeoKeywords ?? "";
+            string title = !string.IsNullOrWhiteSpace(content?.SeoTitle) ? content.SeoTitle : settings.SiteTitle;
+            string description = !string.IsNullOrWhiteSpace(content?.SeoDescription) ? content.SeoDescription : settings.SiteDescription;
+            string keywords = content?.SeoKeywords ?? "";
 
-            // Tam ve mutlak URL oluşturma
-            var currentUrl = new Uri(new Uri($"{request.Scheme}://{request.Host}"), post != null ? $"/post/{post.Slug}" : request.Path).ToString();
+            // Tam ve mutlak URL oluşturma (Sayfa tipine göre farklı rota belirlenebilir)
+            string routePrefix = (content is Post) ? "/post/" : (content is Page) ? "/page/" : "";
 
-            // Kullanılacak resmi belirleme: Önce yazının kapak fotoğrafı, yoksa sitenin varsayılan resmi
-            string? imageUrl = post?.CoverPhotoUrl ?? settings.SiteImageUrl;
+            var currentUrl = new Uri(
+                new Uri($"{request.Scheme}://{request.Host}"),
+                content != null ? $"{routePrefix}{content.Slug}" : request.Path
+            ).ToString();
+
+            // Kullanılacak resmi belirleme:
+            string? imageUrl = content?.CoverPhotoUrl ?? settings.SiteImageUrl;
             if (!string.IsNullOrWhiteSpace(imageUrl) && !imageUrl.StartsWith("http"))
             {
                 imageUrl = new Uri(new Uri($"{request.Scheme}://{request.Host}"), imageUrl).ToString();
@@ -45,6 +73,8 @@ namespace Dizgem.Helpers
             {
                 sb.AppendLine($"<meta name=\"keywords\" content=\"{HttpUtility.HtmlEncode(keywords)}\" />");
             }
+
+            // Favicon mantığı (değişmedi)
             if (!string.IsNullOrEmpty(settings.FaviconUrl))
             {
                 string? FaviconUrl = settings.FaviconUrl;
@@ -55,14 +85,16 @@ namespace Dizgem.Helpers
 
                 sb.AppendLine($"<link rel=\"icon\" href=\"{FaviconUrl}\" />");
             }
-            // SEO için Canonical URL ekleniyor
+
+            // SEO için Canonical URL
             sb.AppendLine($"<link rel=\"canonical\" href=\"{currentUrl}\" />");
 
-            sb.AppendLine(); // Okunabilirlik için boşluk
+            sb.AppendLine();
 
             // --- Open Graph Meta Etiketleri (Facebook, LinkedIn vb.) ---
-            sb.AppendLine($"<!-- Open Graph / Facebook -->");
-            sb.AppendLine($"<meta property=\"og:type\" content=\"{(post != null ? "article" : "website")}\" />");
+            sb.AppendLine($"");
+            // content is Post kontrolü ile og:type dinamikleştirildi
+            sb.AppendLine($"<meta property=\"og:type\" content=\"{(content is Post ? "article" : "website")}\" />");
             sb.AppendLine($"<meta property=\"og:url\" content=\"{currentUrl}\" />");
             sb.AppendLine($"<meta property=\"og:title\" content=\"{HttpUtility.HtmlEncode(title)}\" />");
             sb.AppendLine($"<meta property=\"og:description\" content=\"{HttpUtility.HtmlEncode(description)}\" />");
@@ -75,7 +107,7 @@ namespace Dizgem.Helpers
             sb.AppendLine();
 
             // --- Twitter Card Meta Etiketleri ---
-            sb.AppendLine($"<!-- Twitter -->");
+            sb.AppendLine($"");
             sb.AppendLine($"<meta property=\"twitter:card\" content=\"summary_large_image\" />");
             sb.AppendLine($"<meta property=\"twitter:url\" content=\"{currentUrl}\" />");
             sb.AppendLine($"<meta property=\"twitter:title\" content=\"{HttpUtility.HtmlEncode(title)}\" />");

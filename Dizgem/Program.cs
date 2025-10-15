@@ -251,6 +251,7 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedAttributes.Add("id"); 
     sanitizer.AllowedAttributes.Add("media"); 
     sanitizer.AllowedAttributes.Add("data-gjs-type"); 
+    sanitizer.AllowedAttributes.Add("gjs-highlightable"); 
 
 
     // Yapýlandýrýlmýþ sanitizer nesnesini döndürüyoruz.
@@ -357,6 +358,8 @@ builder.Services.AddScoped<ISeoService, SeoService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
+builder.Services.AddScoped<ISitemapService, SitemapService>();
+builder.Services.AddScoped<IFormProcessingService, FormProcessingService>();
 
 
 var app = builder.Build();
@@ -393,7 +396,10 @@ if (Directory.Exists(themesPath))
 
 app.UseThemeStaticFiles();
 
+
 app.UseRouting();
+
+app.UseMiddleware<FormHandlerMiddleware>();
 
 // Auth middleware HER ZAMAN aktif olmalý
 app.UseAuthentication();

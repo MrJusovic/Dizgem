@@ -83,6 +83,11 @@ namespace Dizgem.Services
 
             // İndirilen zip dosyasını aç
             ZipFile.ExtractToDirectory(zipPath, extractPath, true);
+            string settingsFile = Path.Combine(extractPath, "appsettings.json");
+            if (System.IO.File.Exists(settingsFile))
+            { 
+                System.IO.File.Delete(settingsFile);
+            }
 
             // Güncelleme bayrağını oluştur
             var flagPath = Path.Combine(_env.ContentRootPath, "update.flag");

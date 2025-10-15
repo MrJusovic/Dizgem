@@ -1,0 +1,51 @@
+﻿@model FormHandler
+@{
+    ViewData["Title"] = "Form İşleyiciyi Düzenle";
+}
+
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-area="Dizgem" asp-controller="Forms" asp-action="Edit">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="UniqueIdentifier" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label>Benzersiz Tanımlayıcı (Değiştirilemez)</label>
+                <input asp-for="UniqueIdentifier" class="form-control" readonly />
+            </div>
+            <div class="mb-3">
+                <label asp-for="ActionType" class="form-label"></label>
+                <select asp-for="ActionType" asp-items="Html.GetEnumSelectList<FormActionType>()" class="form-select"></select>
+                <span asp-validation-for="ActionType" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ActionTarget" class="form-label"></label>
+                <input asp-for="ActionTarget" class="form-control" />
+                <span asp-validation-for="ActionTarget" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="SuccessMessage" class="form-label"></label>
+                <textarea asp-for="SuccessMessage" class="form-control"></textarea>
+                <span asp-validation-for="SuccessMessage" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Kaydet" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Geri Dön</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

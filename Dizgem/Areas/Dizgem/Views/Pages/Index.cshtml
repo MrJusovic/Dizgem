@@ -67,8 +67,8 @@
                         "render": function (data, type, row, meta) {
                             var editUrl = '/Dizgem/Pages/Upsert/' + data;
                             var deleteUrl = '/Dizgem/Pages/Delete/' + data;
-                            return '<a href="' + editUrl + '" class="btn btn-sm btn-info">Düzenle</a> ' +
-                                   '<a href="javascript:void(0);" class="btn btn-sm btn-danger delete-btn" data-id="${data}" data-name="${row.name}">Sil</a>';
+                            return `<a href="${editUrl}" class="btn btn-sm btn-info">Düzenle</a>
+                                   <a href="javascript:void(0);" class="btn btn-sm btn-danger delete-btn" data-id="${data}" data-name="${row.title}">Sil</a>`;
                         },
                         "orderable": false,
                         "width": "150px"

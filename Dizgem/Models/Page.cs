@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Dizgem.Models
 {
-    public class Page
+    public class Page : ISeoContent
     {
         // Sayfanın benzersiz kimliği (Primary Key)
         [Key]

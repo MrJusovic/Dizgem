@@ -4,6 +4,7 @@ using Dizgem.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dizgem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251015125654_FormsTable")]
+    partial class FormsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,32 +81,6 @@ namespace Dizgem.Migrations
                         .IsUnique();
 
                     b.ToTable("FormHandlers");
-                });
-
-            modelBuilder.Entity("Dizgem.Models.FormSubmission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("DataJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("FormHandlerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("SubmissionDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FormHandlerId");
-
-                    b.HasIndex("Id")
-                        .IsUnique();
-
-                    b.ToTable("FormSubmissions");
                 });
 
             modelBuilder.Entity("Dizgem.Models.Menu", b =>
@@ -614,17 +591,6 @@ namespace Dizgem.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Dizgem.Models.FormSubmission", b =>
-                {
-                    b.HasOne("Dizgem.Models.FormHandler", "FormHandler")
-                        .WithMany()
-                        .HasForeignKey("FormHandlerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FormHandler");
                 });
 
             modelBuilder.Entity("Dizgem.Models.MenuItem", b =>

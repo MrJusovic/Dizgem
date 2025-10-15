@@ -42,6 +42,13 @@
 }
 <h3>@ViewData["Title"]</h3>
 <hr />
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Html.Raw(TempData["ErrorMessage"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 <form asp-area="Dizgem" asp-controller="Posts" asp-action="Upsert" method="post" class="form row">
 
     <div class="col-md-8">

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Dizgem.Models
 {
-    public class Post
+    public class Post : ISeoContent
     {
         // Yazının benzersiz kimliği (Primary Key)
         [Key]

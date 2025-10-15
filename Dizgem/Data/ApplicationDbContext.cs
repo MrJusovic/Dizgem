@@ -24,9 +24,13 @@ namespace Dizgem.Data
         public DbSet<PostCategory> PostCategories { get; set; }
         public DbSet<PageCategory> PageCategories { get; set; }
         public DbSet<PostTag> PostTags { get; set; }
+        public DbSet<PageTag> PageTags { get; set; }
 
         public DbSet<Menu> Menus { get; set; }
         public DbSet<MenuItem> MenuItems { get; set; }
+
+        public DbSet<FormHandler> FormHandlers { get; set; }
+        public DbSet<FormSubmission> FormSubmissions { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -118,6 +122,16 @@ namespace Dizgem.Data
                 .OnDelete(DeleteBehavior.Restrict); // Bir üst öğe silinirse, veritabanı bütünlüğünü korumak
                                                     // için alt öğelerin silinmesini engeller.
                                                     // Önce alt öğeleri silmeniz veya başka bir yere taşımanız gerekir.
+
+
+            // FormHandler için benzersiz alan
+            builder.Entity<FormHandler>()
+                .HasIndex(f => f.UniqueIdentifier)
+                .IsUnique();
+
+            builder.Entity<FormSubmission>()
+                .HasIndex(f => f.Id)
+                .IsUnique();
         }
     }
 }

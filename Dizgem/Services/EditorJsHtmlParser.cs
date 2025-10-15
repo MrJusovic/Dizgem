@@ -121,13 +121,59 @@ namespace Dizgem.Services
                         break;
 
                     case "list":
-                        string listTag = data.GetProperty("style").GetString() == "ordered" ? "ol" : "ul";
-                        stringBuilder.Append($"<{listTag}>");
-                        foreach (JsonElement item in data.GetProperty("items").EnumerateArray())
+                        string listStyle = data.GetProperty("style").GetString();
+
+                        if (listStyle == "checklist")
                         {
-                            stringBuilder.Append($"<li>{item.GetString()}</li>"); // Inline etiketler için encode etmiyoruz
+                            stringBuilder.Append("<div class='editor-checklist'>");
+                            if (data.TryGetProperty("items", out JsonElement checkItems2))
+                            {
+                                foreach (var item in checkItems2.EnumerateArray())
+                                {
+                                    // Yeni JSON yapısına göre parse etme
+                                    string text = item.TryGetProperty("content", out var contentElement) ? contentElement.GetString() : "";
+                                    bool isChecked = false;
+                                    if (item.TryGetProperty("meta", out var metaElement) && metaElement.TryGetProperty("checked", out var checkedElement))
+                                    {
+                                        isChecked = checkedElement.GetBoolean();
+                                    }
+
+                                    stringBuilder.Append($@"<div class='editor-checklist-item'>
+                                        <input type='checkbox' {(isChecked ? "checked" : "")} disabled readonly>
+                                        <label>{HttpUtility.HtmlEncode(text)}</label>
+                                    </div>");
+                                }
+                            }
+                            stringBuilder.Append("</div>");
                         }
-                        stringBuilder.Append($"</{listTag}>");
+                        else
+                        {
+                            string listTag = listStyle == "ordered" ? "ol" : "ul";
+                            stringBuilder.Append($"<{listTag}>");
+                            if (data.TryGetProperty("items", out JsonElement items))
+                            {
+                                AppendListItems(stringBuilder, items);
+                            }
+
+                            stringBuilder.Append($"</{listTag}>");
+                        }
+                        break;
+
+                    case "checklist":
+                        stringBuilder.Append("<div class='editor-checklist'>");
+                        if (data.TryGetProperty("items", out JsonElement checkItems))
+                        {
+                            foreach (var item in checkItems.EnumerateArray())
+                            {
+                                bool isChecked = item.GetProperty("checked").GetBoolean();
+                                string text = item.GetProperty("text").GetString();
+                                stringBuilder.Append($@"<div class='editor-checklist-item'>
+                                    <input type='checkbox' {(isChecked ? "checked" : "")} disabled readonly>
+                                    <label>{text}</label>
+                                </div>");
+                            }
+                        }
+                        stringBuilder.Append("</div>");
                         break;
 
                     case "image":
@@ -233,6 +279,31 @@ namespace Dizgem.Services
                 }
             }
             return stringBuilder.ToString();
+        }
+
+        private void AppendListItems(StringBuilder stringBuilder, JsonElement items)
+        {
+            foreach (var item in items.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object)
+                {
+                    string content = item.TryGetProperty("content", out var contentElement) ? contentElement.GetString() : "";
+                    stringBuilder.Append($"<li>{content}");
+
+                    if (item.TryGetProperty("items", out var nestedItems) && nestedItems.GetArrayLength() > 0)
+                    {
+                        stringBuilder.Append("<ul>");
+                        AppendListItems(stringBuilder, nestedItems);
+                        stringBuilder.Append("</ul>");
+                    }
+
+                    stringBuilder.Append("</li>");
+                }
+                else if (item.ValueKind == JsonValueKind.String)
+                {
+                    stringBuilder.Append($"<li>{item.GetString()}</li>");
+                }
+            }
         }
     }
 }

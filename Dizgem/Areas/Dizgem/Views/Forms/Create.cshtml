@@ -1,0 +1,48 @@
+﻿@model FormHandler
+
+@{
+    ViewData["Title"] = "Yeni Form İşleyici Oluştur";
+}
+
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-area="Dizgem" asp-controller="Forms" asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ActionType" class="form-label"></label>
+                <select asp-for="ActionType" asp-items="Html.GetEnumSelectList<FormActionType>()" class="form-select">
+                    <option selected="selected" value="">Seçiniz...</option>
+                </select>
+                <span asp-validation-for="ActionType" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ActionTarget" class="form-label"></label>
+                <input asp-for="ActionTarget" class="form-control" placeholder="admin@site.com veya LeadsTablosu" />
+                <span asp-validation-for="ActionTarget" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="SuccessMessage" class="form-label"></label>
+                <textarea asp-for="SuccessMessage" class="form-control"></textarea>
+                <span asp-validation-for="SuccessMessage" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Oluştur" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Geri Dön</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

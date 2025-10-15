@@ -20,6 +20,10 @@ namespace Dizgem.Areas.Dizgem.Controllers
         public IActionResult Index()
         {
             var currentSettings = _settingsService.Current;
+            if (string.IsNullOrEmpty(currentSettings?.SiteUrl))
+            {
+                currentSettings.SiteUrl = $"{Request.Scheme}://{Request.Host}";
+            }
             return View(currentSettings);
         }
 
@@ -30,6 +34,10 @@ namespace Dizgem.Areas.Dizgem.Controllers
         {
             if (ModelState.IsValid)
             {
+                if (string.IsNullOrEmpty(model?.SiteUrl))
+                {
+                    model.SiteUrl = $"{Request.Scheme}://{Request.Host}";
+                }
                 await _settingsService.SaveSettingsAsync(model);
                 // Başarı mesajı
                 TempData["SuccessMessage"] = "Ayarlar başarıyla güncellendi.";

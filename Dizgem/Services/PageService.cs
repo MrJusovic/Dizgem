@@ -164,8 +164,8 @@ namespace Dizgem.Services
         private async Task ProcessPostData(Page page, PostEditViewModel<Page> model)
         {
             // Veritabanına kaydedilecek olan ham JSON'u temizliyoruz.
-            page.ContentJson = _htmlParser.SanitizeRawBlocks(page.ContentJson);
-            page.ContentJson = page.ContentJson ?? "{}";
+            //page.ContentJson = _htmlParser.SanitizeRawBlocks(page.ContentJson);
+            //page.ContentJson = page.ContentJson ?? "{}";
             string pattern = @"</?body.*?>";
             page.Content = Regex.Replace(page.Content, pattern, string.Empty, RegexOptions.IgnoreCase);
             //page.Content = _htmlParser.Parse(page.ContentJson);
@@ -175,29 +175,29 @@ namespace Dizgem.Services
             page.Excerpt = _excerptService.GenerateExcerpt(getExcerpt);
 
             page.Slug = await _slugService.GenerateUniqueSlugAsync(page.Title, page.Slug, page.Id, "page");
-            _seoService.EnsureSeoFields(page);
+            _seoService.EnsureSeoFields(page, model.TagsString);
         }
 
         private async Task UpdatePostRelations(Guid pageId, PostEditViewModel<Page> model)
         {
             // Kategorileri güncelle
-            var existingCategories = _context.PostCategories.Where(pc => pc.PostId == pageId);
-            _context.PostCategories.RemoveRange(existingCategories);
+            var existingCategories = _context.PageCategories.Where(pc => pc.PageId == pageId);
+            _context.PageCategories.RemoveRange(existingCategories);
 
             if (model.SelectedCategoryIds != null && model.SelectedCategoryIds.Any())
             {
-                var relations = model.SelectedCategoryIds.Select(catId => new PostCategory
+                var relations = model.SelectedCategoryIds.Select(catId => new PageCategory
                 {
-                    PostId = pageId,
+                    PageId = pageId,
                     CategoryId = catId,
                     IsPrimary = (catId == model.PrimaryCategoryId)
                 });
-                await _context.PostCategories.AddRangeAsync(relations);
+                await _context.PageCategories.AddRangeAsync(relations);
             }
 
             // Etiketleri güncelle
-            var existingTags = _context.PostTags.Where(pt => pt.PostId == pageId);
-            _context.PostTags.RemoveRange(existingTags);
+            var existingTags = _context.PageTags.Where(pt => pt.PageId == pageId);
+            _context.PageTags.RemoveRange(existingTags);
 
             if (!string.IsNullOrWhiteSpace(model.TagsString))
             {
@@ -214,7 +214,7 @@ namespace Dizgem.Services
                         // Yeni tag'i hemen kaydet ki ID'si oluşsun.
                         await _context.SaveChangesAsync();
                     }
-                    _context.PostTags.Add(new PostTag { PostId = pageId, TagId = tag.Id });
+                    _context.PageTags.Add(new PageTag { PageId = pageId, TagId = tag.Id });
                 }
             }
             await _context.SaveChangesAsync();

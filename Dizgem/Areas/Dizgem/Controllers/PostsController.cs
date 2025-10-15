@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using System.Security.Claims;
 
 namespace Dizgem.Areas.Dizgem.Controllers
@@ -64,6 +65,7 @@ namespace Dizgem.Areas.Dizgem.Controllers
             ModelState.Remove("Post.Content");
             ModelState.Remove("Post.Excerpt");
             ModelState.Remove("Post.TagsString");
+            ModelState.Remove("TagsString");
 
             if (ModelState.IsValid)
             {
@@ -80,6 +82,23 @@ namespace Dizgem.Areas.Dizgem.Controllers
                 }
 
                 return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                if (!ModelState.IsValid)
+                {
+                    // 1. ModelState içindeki tüm hata mesajlarını bir liste olarak al.
+                    var errorMessages = ModelState.Values
+                                                  .SelectMany(v => v.Errors)
+                                                  .Select(e => e.ErrorMessage);
+
+                    // 2. Hata mesajlarını bir HTML listesi (<ul><li>...</li></ul>) olarak formatla.
+                    var errorListHtml = $"<ul>{string.Join("", errorMessages.Select(e => $"<li>{e}</li>"))}</ul>";
+
+                    // 3. Formatlanmış HTML'i TempData'ya ata.
+                    TempData["ErrorMessage"] = errorListHtml;
+
+                }
             }
 
             // Model geçerli değilse, kategori listesi gibi gerekli alanları tekrar doldur.

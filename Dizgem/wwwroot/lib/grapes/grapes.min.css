@@ -586,7 +586,7 @@ span.CodeMirror-selectedtext {
     --gjs-color-red: #dd3636;
     --gjs-color-yellow: #ffca6f;
     --gjs-color-green: #62c462;
-    --gjs-left-width: 15%;
+    --gjs-left-width: 25%;
     --gjs-color-highlight: #71b7f1;
     --gjs-color-warn: #ffca6f;
     --gjs-handle-margin: -5px;

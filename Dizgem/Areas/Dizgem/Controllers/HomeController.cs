@@ -19,24 +19,5 @@ namespace Dizgem.Areas.Dizgem.Controllers
         {
             return View();
         }
-
-        [Route("/Themes")]
-        public async Task<IActionResult> Themes()
-        {
-            var themes = await _themeService.GetInstalledThemesAsync();
-            return View(themes);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ActivateTheme(string themeName)
-        {
-            if (string.IsNullOrEmpty(themeName))
-            {
-                return BadRequest();
-            }
-
-            await _themeService.ActivateThemeAsync(themeName);
-            return RedirectToAction("Themes");
-        }
     }
 }
