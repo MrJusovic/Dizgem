@@ -38,7 +38,7 @@ namespace Dizgem.Services
             var submission = new FormSubmission
             {
                 FormHandlerId = handler.Id,
-                DataJson = JsonSerializer.Serialize(formData.ToDictionary(k => k.Key, v => v.Value.ToString()))
+                DataJson = JsonSerializer.Serialize(formData.Where(x=> !x.Key.StartsWith("__") && x.Key.ToLower() != "data-dizgem-handler-id").ToDictionary(k => k.Key, v => v.Value.ToString()))
             };
             _context.FormSubmissions.Add(submission);
             await _context.SaveChangesAsync();

@@ -60,5 +60,6 @@ namespace Dizgem.Services
             html = StyleBlock.Replace(html, string.Empty);
             return html;
         }
+
     }
 }

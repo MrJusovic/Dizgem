@@ -21,41 +21,109 @@ static void ApplyUpdateIfAvailable()
     var rootPath = Directory.GetCurrentDirectory();
     var flagPath = Path.Combine(rootPath, "update.flag");
     var updateSourcePath = Path.Combine(rootPath, "_update", "new_version");
+    var backupPath = Path.Combine(rootPath, "_backup_" + Guid.NewGuid().ToString("N").Substring(0, 8));
 
+    // Güncelleme bayraðý yoksa herhangi bir iþlem yapma
     if (!File.Exists(flagPath))
     {
         return;
     }
 
+    // Basit bir loglama mekanizmasý
+    void Log(string message)
+    {
+        var logFilePath = Path.Combine(rootPath, "update_log.txt");
+        File.AppendAllText(logFilePath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{System.Environment.NewLine}");
+    }
+
+    Log("Güncelleme baþlatýldý.");
+
     try
     {
+        Log("Kaynak dizin belirleniyor...");
         var sourceDirectory = Directory.GetDirectories(updateSourcePath).FirstOrDefault();
         if (sourceDirectory == null || !Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
         {
             sourceDirectory = updateSourcePath;
         }
+        Log($"Kaynak dizin: {sourceDirectory}");
 
-        foreach (var file in Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories))
+        Log("Yedekleme klasörü oluþturuluyor: " + backupPath);
+        Directory.CreateDirectory(backupPath);
+
+        var sourceFiles = Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories);
+        Log($"{sourceFiles.Length} adet dosya kopyalanacak.");
+
+        // === GÜNCELLEME MANTIÐI ===
+        // 1. Adým: Mevcut kilitli dosyalarý yeniden adlandýrarak "gölgele"
+        foreach (var file in sourceFiles)
+        {
+            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var destinationPath = Path.Combine(rootPath, relativePath);
+
+            if (File.Exists(destinationPath))
+            {
+                var backupFilePath = Path.Combine(backupPath, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath));
+                Log($"Yedekleniyor ve yeniden adlandýrýlýyor: {destinationPath}");
+                File.Move(destinationPath, backupFilePath); // Kilitli dosyayý bile taþýyabilir/yeniden adlandýrabiliriz
+            }
+        }
+
+        // 2. Adým: Artýk yerleri boþ olan konumlara yeni dosyalarý kopyala
+        Log("Yeni dosyalar kopyalanýyor...");
+        foreach (var file in sourceFiles)
         {
             var relativePath = Path.GetRelativePath(sourceDirectory, file);
             var destinationPath = Path.Combine(rootPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
             File.Copy(file, destinationPath, true);
         }
+
+        Log("Güncelleme baþarýyla tamamlandý. Temizlik yapýlýyor.");
     }
-    catch
+    catch (Exception ex)
     {
-        // Dosya kopyalama baþarýsýz olursa, iþlemi geri al ve temizle.
+        Log($"HATA OLUÞTU: {ex.Message}");
+        Log("Güncelleme geri alýnýyor...");
+        // Hata durumunda, yedeklenen dosyalarý geri yükle
+        try
+        {
+            if (Directory.Exists(backupPath))
+            {
+                foreach (var file in Directory.GetFiles(backupPath, "*.*", SearchOption.AllDirectories))
+                {
+                    var relativePath = Path.GetRelativePath(backupPath, file);
+                    var destinationPath = Path.Combine(rootPath, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
+                    File.Copy(file, destinationPath, true);
+                }
+            }
+            Log("Geri alma iþlemi tamamlandý.");
+        }
+        catch (Exception rollbackEx)
+        {
+            Log($"GERÝ ALMA SIRASINDA HATA: {rollbackEx.Message}");
+        }
+    }
+    finally
+    {
+        // Her durumda geçici dosyalarý ve bayraðý temizle
+        Log("Geçici dosyalar siliniyor...");
         if (Directory.Exists(Path.Combine(rootPath, "_update")))
         {
             Directory.Delete(Path.Combine(rootPath, "_update"), true);
         }
-        if (File.Exists(flagPath))
+        if (Directory.Exists(backupPath))
         {
-            File.Delete(flagPath);
+            Directory.Delete(backupPath, true);
         }
+        //if (File.Exists(flagPath))
+        //{
+        //    File.Delete(flagPath);
+        //}
+        Log("Temizlik tamamlandý.");
     }
-    // Baþarýlý olursa temizlik yapýlmaz, bayrak dosyasý býrakýlýr.
 }
 
 // 2. ADIM: Veritabaný migration'ýný uygular ve geçici dosyalarý temizler.

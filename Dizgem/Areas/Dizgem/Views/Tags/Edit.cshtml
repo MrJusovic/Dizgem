@@ -4,29 +4,49 @@
     ViewData["Title"] = "Etiketi Düzenle";
 }
 
-<h3>@ViewData["Title"]</h3>
-<h4>@Model.Name</h4>
-<hr />
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
+            </h4>
+            <nav aria-label="breadcrumb" class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Tags">Kategoriler</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Edit" asp-controller="Tags" asp-route-id="@Model.Id">@Model.Name</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detay</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
 <div class="row">
-    <div class="col-md-6">
-        <form asp-area="Dizgem" asp-controller="Tags" asp-action="Edit" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group mb-3">
-                <label asp-for="Name" class="control-label">Etiket Adı</label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Slug" class="control-label">URL Metni (Slug)</label>
-                <input asp-for="Slug" class="form-control" />
-                <span asp-validation-for="Slug" class="text-danger"></span>
+            <div class="card-body">
+                <form asp-area="Dizgem" asp-controller="Tags" asp-action="Edit" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="control-label">Etiket Adı</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="Slug" class="control-label">URL Metni (Slug)</label>
+                        <input asp-for="Slug" class="form-control" />
+                        <span asp-validation-for="Slug" class="text-danger"></span>
+                    </div>
+                    <div class="form-group d-flex justify-content-between">
+                        <a asp-action="Index" asp-controller="Tags" asp-area="Dizgem" class="btn btn-secondary">Listeye Dön</a>
+                        <input type="submit" value="Kaydet" class="btn btn-primary" />
+                    </div>
+                </form>
             </div>
-            <div class="form-group d-flex justify-content-between">
-                <a asp-action="Index" class="btn btn-secondary">Listeye Dön</a>
-                <input type="submit" value="Kaydet" class="btn btn-primary" />                
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 

@@ -4,8 +4,7 @@
     ViewData["Title"] = Model.Post?.Id == Guid.Empty ? "Yeni Yazı Oluştur" : "Yazıyı Düzenle";
 }
 @section styles {
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/css/tom-select.css" rel="stylesheet">
-
+    <link href="~/lib/tom-select/tom-select.css" rel="stylesheet" type="text/css" media="all" />
     <style>
         #cover-photo-uploader {
             border: 2px dashed #007bff;
@@ -40,15 +39,22 @@
         }
     </style>
 }
-<h3>@ViewData["Title"]</h3>
-<hr />
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @Html.Raw(TempData["ErrorMessage"])
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
+            </h4>
+            <nav aria-label="breadcrumb" class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Posts">Yazılar</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detay</li>
+                </ol>
+            </nav>
+        </div>
     </div>
-}
+</div>
+
 <form asp-area="Dizgem" asp-controller="Posts" asp-action="Upsert" method="post" class="form row">
 
     <div class="col-md-8">
@@ -182,7 +188,7 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.4.3/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/lib/tom-select/tom-select.complete.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/editorjs-multiblock-selection-plugin"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@editorjs/header@@latest"></script><!-- Header -->

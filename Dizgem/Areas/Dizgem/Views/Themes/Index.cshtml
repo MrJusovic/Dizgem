@@ -31,22 +31,6 @@
     <h4>Tema Yönetimi</h4>
 </div>
 
-<!-- Bildirim Mesajları -->
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
 <!-- Yeni Tema Yükleme Formu -->
 <div class="card mb-4">
     <div class="card-header">

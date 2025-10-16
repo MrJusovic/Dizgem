@@ -1,6 +1,8 @@
 ﻿using Dizgem.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Web;
 using System.Xml.Linq;
 
 namespace Dizgem.Services
@@ -9,11 +11,13 @@ namespace Dizgem.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ISettingsService _settingsService; // Ayarları okumak için
+        private readonly IExcerptService _excerptService; // Ayarları okumak için
 
-        public SitemapService(ApplicationDbContext context, ISettingsService settingsService)
+        public SitemapService(ApplicationDbContext context, ISettingsService settingsService, IExcerptService excerptService)
         {
             _context = context;
             _settingsService = settingsService;
+            _excerptService = excerptService;
         }
 
         public async Task<string> GenerateSitemapXmlAsync()
@@ -105,6 +109,63 @@ namespace Dizgem.Services
             if (!string.IsNullOrWhiteSpace(siteUrl))
             {
                 sb.AppendLine($"Sitemap: {siteUrl.TrimEnd('/')}/sitemap.xml");
+            }
+
+            return sb.ToString();
+        }
+
+        public Task<string> GenerateLlmsTxtAsync()
+        {
+            var settings = _settingsService.Current;
+            string baseUrl = settings.SiteUrl;
+            var sb = new StringBuilder();
+            sb.AppendLine("# Bu, sitemizin içeriğini LLM'lerin anlaması için bir rehberdir.");
+            sb.AppendLine("# Daha fazla bilgi için: https://llmstxt.org");
+            sb.AppendLine();
+            sb.AppendLine($"content: {baseUrl}/llms-content.md");
+
+            return Task.FromResult(sb.ToString());
+        }
+
+        public async Task<string> GenerateLlmsContentMarkdownAsync()
+        {
+            var sb = new StringBuilder();
+            var settings = _settingsService.Current;
+
+            // Ana Başlık ve Açıklama
+            sb.AppendLine($"# {settings.SiteTitle}");
+            sb.AppendLine();
+            sb.AppendLine(settings.SiteDescription);
+            sb.AppendLine();
+            sb.AppendLine("---");
+            sb.AppendLine();
+
+            // Sayfaları Ekle
+            sb.AppendLine("## Sayfalar");
+            sb.AppendLine();
+            var pages = await _context.Pages.Where(p => p.IsPublished).ToListAsync();
+            foreach (var page in pages)
+            {
+                sb.AppendLine($"### Sayfa: {page.Title}");
+                sb.AppendLine();
+                // HTML'i temizle ve metin olarak ekle
+                var content = Regex.Replace(HttpUtility.HtmlDecode(page.Content), "<.*?>", " ");
+                sb.AppendLine(content?.CleanWhitespace());
+                sb.AppendLine();
+            }
+
+            // Yazıları Ekle
+            sb.AppendLine("## Yazılar");
+            sb.AppendLine();
+            var posts = await _context.Posts.Where(p => p.IsPublished).OrderByDescending(p => p.PublishedDate).ToListAsync();
+            foreach (var post in posts)
+            {
+                sb.AppendLine($"### Yazı: {post.Title}");
+                sb.AppendLine($"(Yayınlanma Tarihi: {post.PublishedDate:dd MMMM yyyy})");
+                sb.AppendLine();
+                var content = Regex.Replace(HttpUtility.HtmlDecode(post.RenderedContent.ToString()), "<.*?>", " ");
+                sb.AppendLine(content?.CleanWhitespace());
+                sb.AppendLine();
             }
 
             return sb.ToString();

@@ -25,10 +25,21 @@ namespace Dizgem.Controllers
         }
 
         [Route("/robots.txt")]
-        [Route("/llms.txt")] // İsteğiniz üzerine llms.txt'yi de destekliyor
         public async Task<IActionResult> Robots()
         {
             var robotsContent = await _sitemapService.GenerateRobotsTxtAsync();
+            return Content(robotsContent, "text/plain", Encoding.UTF8);
+        }
+        [Route("/llms.txt")] // İsteğiniz üzerine llms.txt'yi de destekliyor
+        public async Task<IActionResult> LLMS()
+        {
+            var robotsContent = await _sitemapService.GenerateLlmsTxtAsync();
+            return Content(robotsContent, "text/plain", Encoding.UTF8);
+        }
+        [Route("/llms-content.md")] // İsteğiniz üzerine llms.txt'yi de destekliyor
+        public async Task<IActionResult> LLMSMD()
+        {
+            var robotsContent = await _sitemapService.GenerateLlmsContentMarkdownAsync();
             return Content(robotsContent, "text/plain", Encoding.UTF8);
         }
     }

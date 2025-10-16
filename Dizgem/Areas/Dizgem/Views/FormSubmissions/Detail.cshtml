@@ -1,0 +1,58 @@
+﻿@model FormSubmission
+
+@{
+    ViewData["Title"] = "Detail";
+}
+
+@{
+    ViewData["Title"] = "Form Kaydı Detayı";
+    var formData = ViewData["FormData"] as Dictionary<string, string>;
+}
+
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> Form Kayıt Detayı
+            </h4>
+            <nav aria-label="breadcrumb" class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Forms">Form İşleyicileri</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="FormSubmissions" asp-route-formHandlerId="@Model.FormHandlerId">'@Model.FormHandler.Name' Kayıtları</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detay</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@if (formData != null)
+{
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="card-title">'@Model.FormHandler.Name' Formu Kaydı</h4>
+                    <p class="text-muted">Gönderim Tarihi: @Model.SubmissionDate.ToString("dd MMMM yyyy, HH:mm:ss")</p>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                    @foreach (var item in formData)
+                    {
+                        <dt class="col-sm-3">@item.Key</dt>
+                        <dd class="col-sm-9">@item.Value</dd>
+                    }
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">Görüntülenecek form verisi bulunamadı.</div>
+}
+
+<div class="mt-4">
+    <a asp-area="Dizgem" asp-action="Index" asp-controller="FormSubmissions" asp-route-formHandlerId="@Model.FormHandlerId" class="btn btn-secondary">Kayıt Listesine Geri Dön</a>
+</div>
