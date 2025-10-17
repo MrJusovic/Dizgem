@@ -34614,3 +34614,17 @@ table img {
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
+
+.theme-card .delete-form {
+    display: none;
+    visibility: hidden !important;
+    transition: all .3s ease-in-out;
+    opacity: 0;
+} 
+
+.theme-card:hover .delete-form {
+    display: inline-block;
+    visibility: initial !important;
+    opacity: 1;
+
+} 

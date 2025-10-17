@@ -133,52 +133,80 @@ namespace Dizgem.Services
         {
             if (themeZipFile == null || themeZipFile.Length == 0)
                 return (false, "Lütfen bir dosya seçin.");
-
-            if (Path.GetExtension(themeZipFile.FileName).ToLowerInvariant() != ".zip")
+            if (!string.Equals(Path.GetExtension(themeZipFile.FileName), ".zip", StringComparison.OrdinalIgnoreCase))
                 return (false, "Lütfen geçerli bir .zip dosyası yükleyin.");
 
+            // Temaların kökü (ContentRoot altında tutuyorsun)
             var themesRootPath = Path.Combine(_hostingEnvironment.ContentRootPath, "Themes");
-            var tempExtractPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            // Staging dizini: ACL mirası için Themes altında
+            var stagingRoot = Path.Combine(themesRootPath, "_staging");
+            Directory.CreateDirectory(stagingRoot);
+
+            var extractPath = Path.Combine(stagingRoot, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(extractPath);
 
             try
             {
-                Directory.CreateDirectory(tempExtractPath);
-
+                // ZIP'i güvenli şekilde aç: zip-slip koruması + ReadOnly temizliği
                 using (var stream = themeZipFile.OpenReadStream())
+                using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false))
                 {
-                    using (var archive = new ZipArchive(stream))
+                    foreach (var entry in archive.Entries)
                     {
-                        archive.ExtractToDirectory(tempExtractPath, true);
+                        if (string.IsNullOrEmpty(entry.FullName)) continue;
+
+                        // zip-slip guard
+                        var normalized = entry.FullName.Replace('\\', '/');
+                        if (normalized.Contains("..") || Path.IsPathRooted(entry.FullName))
+                            throw new InvalidOperationException("Geçersiz zip yolu.");
+
+                        var destinationPath = Path.GetFullPath(Path.Combine(extractPath, entry.FullName));
+                        if (!destinationPath.StartsWith(Path.GetFullPath(extractPath), StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException("Geçersiz zip yolu.");
+
+                        if (string.IsNullOrEmpty(entry.Name))
+                        {
+                            Directory.CreateDirectory(destinationPath);
+                            continue;
+                        }
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                        using var entryStream = entry.Open();
+                        using var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                        await entryStream.CopyToAsync(fileStream);
+                        File.SetAttributes(destinationPath, FileAttributes.Normal);
                     }
                 }
 
-                var extractedDirectories = Directory.GetDirectories(tempExtractPath);
+                // theme.json nerede?
                 string themeSourcePath;
-
-                if (extractedDirectories.Length == 1 && File.Exists(Path.Combine(extractedDirectories[0], "theme.json")))
-                {
-                    themeSourcePath = extractedDirectories[0];
-                }
-                else if (File.Exists(Path.Combine(tempExtractPath, "theme.json")))
-                {
-                    themeSourcePath = tempExtractPath;
-                }
+                var extractedDirs = Directory.GetDirectories(extractPath);
+                if (extractedDirs.Length == 1 && File.Exists(Path.Combine(extractedDirs[0], "theme.json")))
+                    themeSourcePath = extractedDirs[0];
+                else if (File.Exists(Path.Combine(extractPath, "theme.json")))
+                    themeSourcePath = extractPath;
                 else
-                {
-                    return (false, "Yüklenen .zip dosyası geçerli bir tema yapısı içermiyor (theme.json bulunamadı).");
-                }
+                    return (false, "Geçerli tema yapısı bulunamadı (theme.json yok).");
 
                 var themeName = new DirectoryInfo(themeSourcePath).Name;
                 var finalThemePath = Path.Combine(themesRootPath, themeName);
 
-                if (Directory.Exists(finalThemePath))
+                // Hedef klasör yoksa oluştur
+                Directory.CreateDirectory(finalThemePath);
+
+                // Eğer update manifesti varsa, önce uygula
+                var manifestPath = Path.Combine(themeSourcePath, "theme.update.json");
+                if (File.Exists(manifestPath))
                 {
-                    return (false, $"'{themeName}' adında bir tema zaten mevcut.");
+                    await ApplyUpdateManifestAsync(manifestPath, finalThemePath);
+                    File.Delete(manifestPath);
                 }
 
-                Directory.Move(themeSourcePath, finalThemePath);
+                // Silmeden ÜZERİNE YAZ (merge copy)
+                MergeCopyDirectory(themeSourcePath, finalThemePath);
 
-                return (true, $"'{themeName}' teması başarıyla yüklendi.");
+                return (true, $"'{themeName}' teması güncellendi (üzerine yazıldı).");
             }
             catch (Exception ex)
             {
@@ -186,10 +214,67 @@ namespace Dizgem.Services
             }
             finally
             {
-                if (Directory.Exists(tempExtractPath))
+                try { if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true); } catch { /* yoksay */ }
+            }
+        }
+
+        private static void MergeCopyDirectory(string sourceDir, string destDir)
+        {
+            // Klasörleri gez, dosyaları overwrite: true ile kopyala
+            foreach (var srcPath in Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var rel = Path.GetRelativePath(sourceDir, srcPath);
+                var dstPath = Path.Combine(destDir, rel);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(dstPath)!);
+
+                // hedefteki ReadOnly vb. bayrakları kaldır (güncelleme engel olmasın)
+                if (File.Exists(dstPath))
                 {
-                    Directory.Delete(tempExtractPath, true);
+                    try { File.SetAttributes(dstPath, FileAttributes.Normal); } catch { /* geç */ }
                 }
+
+                File.Copy(srcPath, dstPath, overwrite: true);
+                File.SetAttributes(dstPath, FileAttributes.Normal);
+            }
+        }
+
+        /// <summary>
+        /// theme.update.json içindeki "remove" alanına göre hedeften dosya/klasör siler.
+        /// {
+        ///   "remove": [ "old/file.css", "img/unused.png", "subdir/" ]
+        /// }
+        /// </summary>
+        private static async Task ApplyUpdateManifestAsync(string manifestPath, string targetThemeDir)
+        {
+            try
+            {
+                using var fs = File.OpenRead(manifestPath);
+                var json = await JsonDocument.ParseAsync(fs);
+                if (json.RootElement.TryGetProperty("remove", out var removeArray) && removeArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in removeArray.EnumerateArray())
+                    {
+                        var relPath = item.GetString();
+                        if (string.IsNullOrWhiteSpace(relPath)) continue;
+
+                        var targetPath = Path.Combine(targetThemeDir, relPath);
+                        if (Directory.Exists(targetPath))
+                        {
+                            Directory.Delete(targetPath, true);
+                        }
+                        else if (File.Exists(targetPath))
+                        {
+                            try { File.SetAttributes(targetPath, FileAttributes.Normal); } catch { }
+                            File.Delete(targetPath);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Logla ama işlemi durdurma
+                Console.WriteLine($"Manifest uygulanamadı: {ex.Message}");
             }
         }
 

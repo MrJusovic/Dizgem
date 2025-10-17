@@ -95,6 +95,15 @@
                     <button type="button" class="btn btn-outline-secondary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#themeDetailModal-@theme.DirectoryName">
                         Detaylar
                     </button>
+
+                    @if (!theme.IsActive && theme.Name != "Default")
+                    {
+                        <form asp-area="Dizgem" asp-controller="Themes" asp-action="Delete" method="post" class="d-inline delete-form position-absolute top-0 mt-3" style="right: 15px;">
+                            <input type="hidden" name="themeName" value="@theme.Name" data-theme-display-name="@theme.Name" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger">Sil</button>
+                        </form>
+                    }
                 </div>
             </div>
         </div>
@@ -123,30 +132,33 @@
     }
 </div>
 
-@* 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    @foreach (var theme in Model)
-    {
-        <div class="col">
-            <div class="card h-100 shadow-sm @(theme.IsActive ? "border-success" : "")">
-                <div class="card-body">
-                    <h5 class="card-title">@theme.DisplayName</h5>
-                    <p class="card-text text-muted">Klasör Adı: <code>@theme.Name</code></p>
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const deleteForms = document.querySelectorAll('.delete-form');
+            deleteForms.forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
 
-                    @if (theme.IsActive)
-                    {
-                        <span class="badge bg-success">Aktif</span>
-                    }
-                    else
-                    {
-                        <form asp-area="Dizgem" asp-action="ActivateTheme" asp-controller="Home" method="post">
-                            <input type="hidden" name="themeName" value="@theme.Name" />
-                            <button type="submit" class="btn btn-primary mt-2">Aktif Et</button>
-                        </form>
-                    }
-                </div>
-            </div>
-        </div>
-    }
-</div>
- *@
+                    const themeNameInput = this.querySelector('input[name="themeName"]');
+                    const themeDisplayName = themeNameInput.dataset.themeDisplayName;
+
+                    Swal.fire({
+                        title: 'Emin misiniz?',
+                        text: `'${themeDisplayName}' temasını kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz!`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Evet, sil!',
+                        cancelButtonText: 'İptal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    })
+                });
+            });
+        });
+    </script>
+}

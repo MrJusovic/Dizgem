@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <VersionPrefix>1.3.0</VersionPrefix>
+    <VersionPrefix>1.4.0</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,4 +33,68 @@
     <Folder Include="wwwroot\lib\tom-select\" />
   </ItemGroup>
 
+<Target Name="SetLauncherTokens" BeforeTargets="TransformWebConfig">
+  <PropertyGroup>
+    <VersionedDllName>$(AssemblyName)_v$(VersionPrefix).dll</VersionedDllName>
+    <VersionedExeName>$(AssemblyName)_v$(VersionPrefix).exe</VersionedExeName>
+  </PropertyGroup>
+
+  <!-- InProcess: processPath = .\App_vX.exe, arguments boş (RID ile exe çıkıyorsa anlamlıdır) -->
+  <ItemGroup Condition="'$(AspNetCoreHostingModel)' == '' or ToLower('$(AspNetCoreHostingModel)') == 'inprocess'">
+    <WebConfigParameters Include="LAUNCHER_PATH">
+      <Value>.\$(VersionedExeName)</Value>
+    </WebConfigParameters>
+    <WebConfigParameters Include="LAUNCHER_ARGS">
+      <Value></Value>
+    </WebConfigParameters>
+  </ItemGroup>
+
+  <!-- OutOfProcess: processPath = dotnet, arguments = .\App_vX.dll -->
+  <ItemGroup Condition="ToLower('$(AspNetCoreHostingModel)') == 'outofprocess'">
+    <WebConfigParameters Include="LAUNCHER_ARGS">
+      <Value>.\$(VersionedDllName)</Value>
+    </WebConfigParameters>
+    <!-- LAUNCHER_PATH'i dokunma; SDK zaten dotnet koyuyor -->
+  </ItemGroup>
+
+  <Message Text="SetLauncherTokens: Hosting=$(AspNetCoreHostingModel) | LAUNCHER_ARGS item set edildi." Importance="high" />
+</Target>
+
+<!-- Versiyonlama işi (dosyaların adını değiştirme) en güvenlisi SONRA yapmak -->
+<Target Name="RenameOutputsAfterPublish" AfterTargets="Publish">
+  <PropertyGroup>
+    <PublishedDll>$(PublishDir)$(AssemblyName).dll</PublishedDll>
+    <PublishedPdb>$(PublishDir)$(AssemblyName).pdb</PublishedPdb>
+    <PublishedExe>$(PublishDir)$(AssemblyName).exe</PublishedExe>
+    <VersionedDll>$(PublishDir)$(AssemblyName)_v$(VersionPrefix).dll</VersionedDll>
+    <VersionedPdb>$(PublishDir)$(AssemblyName)_v$(VersionPrefix).pdb</VersionedPdb>
+    <VersionedExe>$(PublishDir)$(AssemblyName)_v$(VersionPrefix).exe</VersionedExe>
+  </PropertyGroup>
+
+  <Move SourceFiles="$(PublishedDll)" DestinationFiles="$(VersionedDll)" Condition="Exists('$(PublishedDll)')" />
+  <Move SourceFiles="$(PublishedPdb)" DestinationFiles="$(VersionedPdb)" Condition="Exists('$(PublishedPdb)')" />
+  <Move SourceFiles="$(PublishedExe)" DestinationFiles="$(VersionedExe)" Condition="Exists('$(PublishedExe)')" />
+
+  <Message Text="RenameOutputsAfterPublish: Çıktılar versiyonlandı." Importance="high" />
+</Target>
+
+  <Target Name="VersionOutputsAndPatchWebConfig" AfterTargets="Publish">
+    <PropertyGroup>
+      <!-- Dosya yollarını ve adlarını tanımla -->
+      <PublishedDllPath>$(PublishDir)$(AssemblyName).dll</PublishedDllPath>
+      <PublishedPdbPath>$(PublishDir)$(AssemblyName).pdb</PublishedPdbPath>
+      <VersionedDllName>$(AssemblyName)_v$(VersionPrefix).dll</VersionedDllName>
+      <VersionedPdbName>$(AssemblyName)_v$(VersionPrefix).pdb</VersionedPdbName>
+      <VersionedDllPath>$(PublishDir)$(VersionedDllName)</VersionedDllPath>
+      <VersionedPdbPath>$(PublishDir)$(VersionedPdbName)</VersionedPdbPath>
+      <WebConfigPath>$(PublishDir)web.config</WebConfigPath>
+    </PropertyGroup>
+
+    <Message Text="Publish sonrası versiyonlama başlıyor...  $(WebConfigPath)" Importance="high" />
+    
+    <!-- 2. Adım: web.config dosyasını güncelle. Bu aşamada dosyanın var olması garantidir. -->
+    <XmlPoke Condition="Exists('$(WebConfigPath)')" XmlInputPath="$(WebConfigPath)" Query="/configuration//system.webServer/aspNetCore/@arguments" Value=".\$(VersionedDllName)" />
+        
+    <Message Text="web.config dosyası güncellendi." Importance="high" />
+  </Target>
 </Project>

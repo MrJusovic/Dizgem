@@ -1,0 +1,303 @@
+﻿@model List<ThemeFileNodeViewModel>
+@{
+    ViewData["Title"] = "Tema Düzenleyici";
+}
+
+@section Styles {
+    @* <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+ *@
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material-darker.min.css" type="text/css" media="all" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.css" type="text/css" media="all" />
+
+
+    <style>
+        .CodeMirror {
+            height: 100%;
+            font-size: 14px;
+        }
+
+        #theme-tree-container a {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            padding: 0.25rem 0.5rem;
+        }
+
+            #theme-tree-container a:hover {
+                background-color: #f0f0f0;
+            }
+
+        #theme-tree-container .file-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        #theme-tree-container .toggle-folder .fa-folder,
+        #theme-tree-container .toggle-folder .fa-folder-open {
+            color: #f8d775;
+        }
+
+        #theme-tree-container .far {
+            color: #aaa;
+        }
+    </style>
+}
+
+@functions {
+    // TreeView'ı oluşturmak için özyinelemeli (recursive) yardımcı metot
+    public void RenderTree(List<ThemeFileNodeViewModel> nodes)
+    {
+        if (nodes == null || !nodes.Any()) return;
+
+        <ul class="list-unstyled ps-3">
+            @foreach (var node in nodes)
+            {
+                <li>
+                    @if (node.IsDirectory)
+                    {
+                        <a href="#" class="toggle-folder @(node.IsOpen ? "open" : "")" data-bs-toggle="collapse" data-bs-target="#folder-@node.Path.Replace('\\', '-').Replace('/', '-').Replace(".", "-")">
+                            <i class="fas fa-folder @(node.IsOpen ? "fa-folder-open" : "")"></i> @node.Name
+                        </a>
+                        <div id="folder-@node.Path.Replace('\\', '-').Replace('/', '-').Replace(".", "-")" class="collapse @(node.IsOpen ? "show" : "")">
+                            @{
+                                RenderTree(node.Children);
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <a href="#" class="file-link" data-path="@node.Path">
+                            <i class="far fa-file-alt"></i> @node.Name
+                        </a>
+                    }
+                </li>
+            }
+        </ul>
+    }
+}
+
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
+            </h4>
+            @* <nav aria-label="breadcrumb" class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Forms">Form İşleyiciler</a></li>
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Edit" asp-controller="Forms" asp-route-id="@Model.Id">@Model.Name</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detay</li>
+                </ol>
+            </nav> *@
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-12" id="theme-tree-container">
+                        @{
+                            RenderTree(Model);
+                        }
+                    </div>
+                    <div class="col-md-9">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span id="editing-file-name">Dosya Seçin</span>
+                                <div>
+                                    <button id="beautify-btn" class="btn btn-sm btn-outline-secondary" disabled>Beautify</button>
+                                    <button id="save-btn" class="btn btn-sm btn-primary" disabled>Kaydet</button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="editor-container" style="height: 70vh;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@section Scripts {
+   
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/php/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/jsx/jsx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/htmlmixed/htmlmixed.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/jump-to-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/match-highlighter.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let editor;
+            let currentFilePath = null;
+            let currentMode = null;
+            const editorContainer = document.getElementById('editor-container');
+            const saveBtn = document.getElementById('save-btn');
+            const beautifyBtn = document.getElementById('beautify-btn');
+            const editingFileName = document.getElementById('editing-file-name');
+
+            // CodeMirror'ı başlat
+            editor = CodeMirror(editorContainer, {
+                lineNumbers: true,
+                theme: 'material-darker',
+                readOnly: true, // Başlangıçta salt okunur
+                styleActiveLine: true, // Aktif satırı vurgula
+                highlightSelectionMatches: { showToken: /\w/ }, // Eşleşen kelimeleri vurgula
+                extraKeys: {
+                    "Ctrl-F": "findPersistent", // Kalıcı arama kutusu (Ctrl+F)
+                    "F3": "findNext",
+                    "Shift-F3": "findPrev",
+                    "Ctrl-G": "jumpToLine" // Satıra git (Ctrl+G)
+                }
+            });
+
+            // Dosya linklerine tıklama olayı
+            document.querySelectorAll('.file-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Aktif stili ayarla
+                    document.querySelectorAll('.file-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+
+                    currentFilePath = this.dataset.path;
+                    editingFileName.textContent = currentFilePath;
+
+                    fetch(`/Dizgem/ThemeEditor/GetFileContent?path=${encodeURIComponent(currentFilePath)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if(data.success) {
+                                editor.setValue(data.content);
+                                editor.setOption("readOnly", false);
+
+                                const extension = currentFilePath.split('.').pop().toLowerCase();
+                                switch (extension) {
+                                    case 'cshtml': // CSHTML desteği güncellendi
+                                    case 'html':
+                                        currentMode = 'html';
+                                        editor.setOption('mode', 'htmlmixed');
+                                        break;
+                                    case 'xml':
+                                        currentMode = 'xml';
+                                        editor.setOption('mode', 'xml');
+                                        break;
+                                    case 'css':
+                                        currentMode = 'css';
+                                        editor.setOption('mode', 'css');
+                                        break;
+                                    case 'js':
+                                        currentMode = 'javascript';
+                                        editor.setOption('mode', 'javascript');
+                                        break;
+                                    case 'sql':
+                                        currentMode = 'sql';
+                                        editor.setOption('mode', 'sql');
+                                        break;
+                                    case 'php':
+                                        currentMode = 'php';
+                                        editor.setOption('mode', 'php');
+                                        break;
+                                    case 'json': // JSON desteği eklendi
+                                        currentMode = 'json';
+                                        editor.setOption('mode', { name: 'javascript', json: true });
+                                        break;
+                                    default:
+                                        currentMode = 'text';
+                                        editor.setOption('mode', null);
+                                }
+                                saveBtn.disabled = false;
+                                beautifyBtn.disabled = currentMode === 'text';
+
+                            } else {
+                                // alert('Hata: ' + data.message);
+                                Swal.fire('Hata!', 'Hata: ' + data.message, 'error');
+                            }
+                        });
+                });
+            });
+
+            // Kaydet butonu
+            saveBtn.addEventListener('click', function() {
+                if (!currentFilePath) return;
+
+                const content = editor.getValue();
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Kaydediliyor...';
+
+                fetch('/Dizgem/ThemeEditor/SaveFileContent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': '@Xsrf.GetAndStoreTokens(Context).RequestToken'
+                    },
+                    body: JSON.stringify({ path: currentFilePath, content: content })
+                })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(({ status, body }) => {
+                    if (status === 200 && body.success) {
+                        // Başarı bildirimi (örneğin SweetAlert ile)
+                        // alert(body.message);
+                        Swal.fire('OK', body.message, 'success');
+                    } else {
+                        throw new Error(body.message || 'Bir hata oluştu.');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Hata!', 'Hata: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Kaydet';
+                });
+            });
+
+            // Beautify butonu
+            beautifyBtn.addEventListener('click', function() {
+                if (!editor || currentMode === 'text') return;
+
+                const content = editor.getValue();
+                let beautifiedContent = content;
+
+                if (currentMode === 'html') {
+                    beautifiedContent = html_beautify(content);
+                } else if (currentMode === 'css') {
+                    beautifiedContent = css_beautify(content);
+                } else if (currentMode === 'javascript' || currentMode === 'json') { // JSON desteği eklendi
+                    beautifiedContent = js_beautify(content, { indent_size: 2, space_in_empty_paren: true });
+                }
+
+                editor.setValue(beautifiedContent);
+            });
+        });
+    </script>
+}

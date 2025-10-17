@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Serilog;
 using System;
+using System.Reflection;
 
 // UYGULAMA BAÞLANGIÇ NOKTASI
 
@@ -63,10 +64,17 @@ static void ApplyUpdateIfAvailable()
 
             if (File.Exists(destinationPath))
             {
-                var backupFilePath = Path.Combine(backupPath, relativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath));
-                Log($"Yedekleniyor ve yeniden adlandýrýlýyor: {destinationPath}");
-                File.Move(destinationPath, backupFilePath); // Kilitli dosyayý bile taþýyabilir/yeniden adlandýrabiliriz
+                try
+                {
+                    var backupFilePath = Path.Combine(backupPath, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath));
+                    Log($"Yedekleniyor ve yeniden adlandýrýlýyor: {destinationPath}");
+                    File.Move(destinationPath, backupFilePath);
+                }
+                catch (Exception ex2)
+                {
+                    Log($"[ERR] : ${ex2.Message}");
+                }
             }
         }
 
@@ -179,6 +187,45 @@ static void ApplyMigrationsAndCleanup(IHost app)
 // === GÜNCELLEMEYÝ UYGULA ===
 // Bu komut, Program.cs'deki diðer her þeyden önce çalýþmalýdýr.
 ApplyUpdateIfAvailable();
+
+static void CleanupOldVersions()
+{
+    var rootPath = Directory.GetCurrentDirectory();
+    var entryAssembly = Assembly.GetEntryAssembly();
+    if (entryAssembly == null) return;
+
+    var currentAssemblyName = entryAssembly.GetName().Name;
+    var currentVersionDll = Path.GetFileName(entryAssembly.Location);
+
+    // Ana dizindeki "Dizgem_v*.dll" formatýndaki tüm dosyalarý bul
+    var versionedDlls = Directory.GetFiles(rootPath, $"{currentAssemblyName}_v*.dll");
+
+    foreach (var dll in versionedDlls)
+    {
+        var dllName = Path.GetFileName(dll);
+        // Eðer dosya adý þu an çalýþandan farklýysa, sil
+        if (dllName != currentVersionDll)
+        {
+            try
+            {
+                File.Delete(dll);
+                // Ýlgili .pdb dosyasýný da sil
+                var pdbPath = Path.ChangeExtension(dll, ".pdb");
+                if (File.Exists(pdbPath))
+                {
+                    File.Delete(pdbPath);
+                }
+            }
+            catch
+            {
+                // Dosya hala kilitliyse bir sonraki baþlangýçta silinir.
+            }
+        }
+    }
+}
+
+// === TEMÝZLÝÐÝ BAÞLAT ===
+CleanupOldVersions();
 
 
 
@@ -320,6 +367,7 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedAttributes.Add("media"); 
     sanitizer.AllowedAttributes.Add("data-gjs-type"); 
     sanitizer.AllowedAttributes.Add("gjs-highlightable"); 
+    sanitizer.AllowedAttributes.Add("data-masonry"); 
 
 
     // Yapýlandýrýlmýþ sanitizer nesnesini döndürüyoruz.
@@ -428,6 +476,7 @@ builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<ISitemapService, SitemapService>();
 builder.Services.AddScoped<IFormProcessingService, FormProcessingService>();
+builder.Services.AddScoped<IThemeEditorService, ThemeEditorService>();
 
 
 var app = builder.Build();

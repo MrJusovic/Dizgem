@@ -208,7 +208,28 @@
                         </li>
 
 
+                        <li class="sidebar-item">
+                            <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+                                <span class="d-flex">
+                                    <i class="fal fa-paint-brush"></i>
+                                </span>
+                                <span class="hide-menu">Tema</span>
+                            </a>
+                            <ul aria-expanded="false" class="collapse first-level">
+                                <li class="sidebar-item">
+                                    <a asp-area="Dizgem" asp-controller="Themes" asp-action="Index" class="sidebar-link">
 
+                                        <span class="hide-menu">Temalar</span>
+                                    </a>
+                                </li>
+                                <li class="sidebar-item">
+                                    <a asp-area="Dizgem" asp-controller="ThemeEditor" asp-action="Index" class="sidebar-link">
+
+                                        <span class="hide-menu">Tema Düzenleyici</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                         <li class="sidebar-item">
                             <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
                                 <span class="d-flex">
@@ -223,12 +244,7 @@
                                         <span class="hide-menu">Global</span>
                                     </a>
                                 </li>
-                                <li class="sidebar-item">
-                                    <a asp-area="Dizgem" asp-controller="Themes" asp-action="Index" class="sidebar-link">
-
-                                        <span class="hide-menu">Temalar</span>
-                                    </a>
-                                </li>
+                                
                                 <li class="sidebar-item">
                                     <a asp-area="Dizgem" asp-controller="Menu" asp-action="Index" class="sidebar-link">
 
