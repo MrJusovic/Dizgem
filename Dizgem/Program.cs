@@ -1,4 +1,4 @@
-using Dizgem;
+ï»¿using Dizgem;
 using Dizgem.Data;
 using Dizgem.Filters;
 using Dizgem.Middleware;
@@ -14,9 +14,9 @@ using Serilog;
 using System;
 using System.Reflection;
 
-// UYGULAMA BAŞLANGIÇ NOKTASI
+// UYGULAMA BAÅLANGIÃ‡ NOKTASI
 
-// Güncelleme kontrolünü ve işlemini yapacak statik metot
+// GÃ¼ncelleme kontrolÃ¼nÃ¼ ve iÅŸlemini yapacak statik metot
 static void ApplyUpdateIfAvailable()
 {
     var rootPath = Directory.GetCurrentDirectory();
@@ -24,42 +24,41 @@ static void ApplyUpdateIfAvailable()
     var updateSourcePath = Path.Combine(rootPath, "_update", "new_version");
     var backupPath = Path.Combine(rootPath, "_backup_" + Guid.NewGuid().ToString("N").Substring(0, 8));
 
-    // Güncelleme bayrağı yoksa herhangi bir işlem yapma
     if (!File.Exists(flagPath))
-    {
         return;
-    }
 
-    // Basit bir loglama mekanizması
     void Log(string message)
     {
         var logFilePath = Path.Combine(rootPath, "update_log.txt");
-        File.AppendAllText(logFilePath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{System.Environment.NewLine}");
+        File.AppendAllText(logFilePath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{Environment.NewLine}");
     }
 
-    Log("Güncelleme başlatıldı.");
+    Log("GÃ¼ncelleme baÅŸlatÄ±ldÄ±.");
 
     try
     {
-        Log("Kaynak dizin belirleniyor...");
-        var sourceDirectory = Directory.GetDirectories(updateSourcePath).FirstOrDefault();
-        if (sourceDirectory == null || !Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
-        {
-            sourceDirectory = updateSourcePath;
-        }
-        Log($"Kaynak dizin: {sourceDirectory}");
+        // â† Ã–NEMLÄ°: TÃ¼m iÃ§erik kopyalansÄ±n diye kÃ¶k olarak doÄŸrudan new_version'Ä± al.
+        var sourceRoot = updateSourcePath;
 
-        Log("Yedekleme klasörü oluşturuluyor: " + backupPath);
+        if (!Directory.Exists(sourceRoot) || !Directory.EnumerateFileSystemEntries(sourceRoot).Any())
+        {
+            Log("Kaynak dizin boÅŸ veya yok. Ä°ÅŸlem iptal.");
+            return;
+        }
+
+        Log($"Kaynak dizin: {sourceRoot}");
+
+        Log("Yedekleme klasÃ¶rÃ¼ oluÅŸturuluyor: " + backupPath);
         Directory.CreateDirectory(backupPath);
 
-        var sourceFiles = Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories);
-        Log($"{sourceFiles.Length} adet dosya kopyalanacak.");
+        // TÃ¼m dosyalarÄ± tek tek iÅŸle (akÄ±ÅŸlÄ±): 
+        var sourceFiles = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
+        Log($"{sourceFiles.Count} adet dosya kopyalanacak.");
 
-        // === GÜNCELLEME MANTIĞI ===
-        // 1. Adım: Mevcut kilitli dosyaları yeniden adlandırarak "gölgele"
+        // 1) Var olanlarÄ± yedekleyip taÅŸÄ± (gÃ¶lgele)
         foreach (var file in sourceFiles)
         {
-            var relativePath = Path.GetRelativePath(sourceDirectory, file);
+            var relativePath = Path.GetRelativePath(sourceRoot, file);
             var destinationPath = Path.Combine(rootPath, relativePath);
 
             if (File.Exists(destinationPath))
@@ -67,80 +66,91 @@ static void ApplyUpdateIfAvailable()
                 try
                 {
                     var backupFilePath = Path.Combine(backupPath, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath));
-                    Log($"Yedekleniyor ve yeniden adlandırılıyor: {destinationPath}");
+                    Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath)!);
+                    Log($"Yedekleniyor ve yeniden adlandÄ±rÄ±lÄ±yor: {destinationPath}");
                     File.Move(destinationPath, backupFilePath);
                 }
                 catch (Exception ex2)
                 {
-                    Log($"[ERR] : ${ex2.Message}");
+                    Log($"[ERR] Move(backup) : {ex2.Message}");
                 }
             }
         }
 
-        // 2. Adım: Artık yerleri boş olan konumlara yeni dosyaları kopyala
-        Log("Yeni dosyalar kopyalanıyor...");
+        // 2) Yeni dosyalarÄ± yerine kopyala (Ã¼zerine yazma davranÄ±ÅŸÄ± biz taÅŸÄ±dÄ±ÄŸÄ±mÄ±z iÃ§in burada net)
+        Log("Yeni dosyalar kopyalanÄ±yor...");
         foreach (var file in sourceFiles)
         {
-            var relativePath = Path.GetRelativePath(sourceDirectory, file);
-            var destinationPath = Path.Combine(rootPath, relativePath);
-            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
-            File.Copy(file, destinationPath, true);
+            try
+            {
+                var relativePath = Path.GetRelativePath(sourceRoot, file);
+                var destinationPath = Path.Combine(rootPath, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(file, destinationPath, overwrite: true);
+            }
+            catch (Exception ex2)
+            {
+                Log($"[ERR] Relative Move(backup) : {ex2.Message}");
+            }
+
         }
 
-        Log("Güncelleme başarıyla tamamlandı. Temizlik yapılıyor.");
+        Log("GÃ¼ncelleme baÅŸarÄ±yla tamamlandÄ±. Temizlik yapÄ±lÄ±yor.");
     }
     catch (Exception ex)
     {
-        Log($"HATA OLUŞTU: {ex.Message}");
-        Log("Güncelleme geri alınıyor...");
-        // Hata durumunda, yedeklenen dosyaları geri yükle
+        Log($"HATA OLUÅTU: {ex.Message}");
+        Log("GÃ¼ncelleme geri alÄ±nÄ±yor...");
         try
         {
             if (Directory.Exists(backupPath))
             {
-                foreach (var file in Directory.GetFiles(backupPath, "*.*", SearchOption.AllDirectories))
+                foreach (var file in Directory.EnumerateFiles(backupPath, "*", SearchOption.AllDirectories))
                 {
                     var relativePath = Path.GetRelativePath(backupPath, file);
                     var destinationPath = Path.Combine(rootPath, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
-                    File.Copy(file, destinationPath, true);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                    File.Copy(file, destinationPath, overwrite: true);
                 }
             }
-            Log("Geri alma işlemi tamamlandı.");
+            Log("Geri alma iÅŸlemi tamamlandÄ±.");
         }
         catch (Exception rollbackEx)
         {
-            Log($"GERİ ALMA SIRASINDA HATA: {rollbackEx.Message}");
+            Log($"GERÄ° ALMA SIRASINDA HATA: {rollbackEx.Message}");
         }
     }
     finally
     {
-        // Her durumda geçici dosyaları ve bayrağı temizle
-        Log("Geçici dosyalar siliniyor...");
-        if (Directory.Exists(Path.Combine(rootPath, "_update")))
+        Log("GeÃ§ici dosyalar siliniyor...");
+        try
         {
-            Directory.Delete(Path.Combine(rootPath, "_update"), true);
+            var updateFolder = Path.Combine(rootPath, "_update");
+            if (Directory.Exists(updateFolder))
+                Directory.Delete(updateFolder, recursive: true);
+
+            if (Directory.Exists(backupPath))
+                Directory.Delete(backupPath, recursive: true);
+
+            // GÃ¼ncelleme baÅŸarÄ±yla bittiyse bayraÄŸÄ± kaldÄ±rmak Ã§oÄŸu senaryoda istenir:
+            // if (File.Exists(flagPath)) File.Delete(flagPath);
         }
-        if (Directory.Exists(backupPath))
+        catch (Exception cleanupEx)
         {
-            Directory.Delete(backupPath, true);
+            Log($"Temizlik sÄ±rasÄ±nda hata: {cleanupEx.Message}");
         }
-        //if (File.Exists(flagPath))
-        //{
-        //    File.Delete(flagPath);
-        //}
-        Log("Temizlik tamamlandı.");
+
+        Log("Temizlik tamamlandÄ±.");
     }
 }
 
-// 2. ADIM: Veritabanı migration'ını uygular ve geçici dosyaları temizler.
+// 2. ADIM: VeritabanÄ± migration'Ä±nÄ± uygular ve geÃ§ici dosyalarÄ± temizler.
 static void ApplyMigrationsAndCleanup(IHost app)
 {
     var rootPath = Directory.GetCurrentDirectory();
     var flagPath = Path.Combine(rootPath, "update.flag");
 
-    // Sadece bir güncelleme yapıldıysa bu bloğu çalıştır.
+    // Sadece bir gÃ¼ncelleme yapÄ±ldÄ±ysa bu bloÄŸu Ã§alÄ±ÅŸtÄ±r.
     if (!File.Exists(flagPath))
     {
         return;
@@ -153,28 +163,28 @@ static void ApplyMigrationsAndCleanup(IHost app)
 
         try
         {
-            logger.LogInformation("Güncelleme bayrağı bulundu. Veritabanı migration'ları uygulanıyor...");
+            logger.LogInformation("GÃ¼ncelleme bayraÄŸÄ± bulundu. VeritabanÄ± migration'larÄ± uygulanÄ±yor...");
             var dbContext = services.GetRequiredService<ApplicationDbContext>();
             var csProvider = services.GetRequiredService<IConnectionStringProvider>();
 
             if (!string.IsNullOrWhiteSpace(csProvider.Current))
             {
                 dbContext.Database.Migrate();
-                logger.LogInformation("Veritabanı migration'ları başarıyla uygulandı.");
+                logger.LogInformation("VeritabanÄ± migration'larÄ± baÅŸarÄ±yla uygulandÄ±.");
             }
             else
             {
-                logger.LogWarning("Migration atlanıyor: Veritabanı bağlantısı bulunamadı.");
+                logger.LogWarning("Migration atlanÄ±yor: VeritabanÄ± baÄŸlantÄ±sÄ± bulunamadÄ±.");
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Güncelleme sonrası veritabanı migration'ı sırasında bir hata oluştu.");
+            logger.LogError(ex, "GÃ¼ncelleme sonrasÄ± veritabanÄ± migration'Ä± sÄ±rasÄ±nda bir hata oluÅŸtu.");
         }
         finally
         {
-            // İşlem başarılı da olsa başarısız da olsa güncelleme dosyalarını ve bayrağını temizle.
-            logger.LogInformation("Güncelleme dosyaları temizleniyor.");
+            // Ä°ÅŸlem baÅŸarÄ±lÄ± da olsa baÅŸarÄ±sÄ±z da olsa gÃ¼ncelleme dosyalarÄ±nÄ± ve bayraÄŸÄ±nÄ± temizle.
+            logger.LogInformation("GÃ¼ncelleme dosyalarÄ± temizleniyor.");
             if (Directory.Exists(Path.Combine(rootPath, "_update")))
             {
                 Directory.Delete(Path.Combine(rootPath, "_update"), true);
@@ -184,47 +194,83 @@ static void ApplyMigrationsAndCleanup(IHost app)
     }
 }
 
-// === GÜNCELLEMEYİ UYGULA ===
-// Bu komut, Program.cs'deki diğer her şeyden önce çalışmalıdır.
+// === GÃœNCELLEMEYÄ° UYGULA ===
+// Bu komut, Program.cs'deki diÄŸer her ÅŸeyden Ã¶nce Ã§alÄ±ÅŸmalÄ±dÄ±r.
 ApplyUpdateIfAvailable();
 
 static void CleanupOldVersions()
 {
     var rootPath = Directory.GetCurrentDirectory();
     var entryAssembly = Assembly.GetEntryAssembly();
-    if (entryAssembly == null) return;
+    if (entryAssembly == null)
+        return;
 
     var currentAssemblyName = entryAssembly.GetName().Name;
     var currentVersionDll = Path.GetFileName(entryAssembly.Location);
+    var currentBaseName = Path.GetFileNameWithoutExtension(currentVersionDll);
 
-    // Ana dizindeki "Dizgem_v*.dll" formatındaki tüm dosyaları bul
-    var versionedDlls = Directory.GetFiles(rootPath, $"{currentAssemblyName}_v*.dll");
+    // "Dizgem_v*.dll" formatÄ±nda eski sÃ¼rÃ¼mleri bul
+    var versionedDlls = Directory.GetFiles(rootPath, $"{currentAssemblyName}_v*.dll", SearchOption.TopDirectoryOnly);
 
     foreach (var dll in versionedDlls)
     {
         var dllName = Path.GetFileName(dll);
-        // Eğer dosya adı şu an çalışandan farklıysa, sil
-        if (dllName != currentVersionDll)
+
+        // Åu anki Ã§alÄ±ÅŸanÄ±n kendisi deÄŸilse, silebiliriz
+        if (!dllName.Equals(currentVersionDll, StringComparison.OrdinalIgnoreCase))
         {
             try
             {
+                // Dosya eriÅŸim kÄ±sÄ±tlÄ±ysa bayraklarÄ± temizle
+                if (File.Exists(dll))
+                    File.SetAttributes(dll, FileAttributes.Normal);
+
                 File.Delete(dll);
-                // İlgili .pdb dosyasını da sil
-                var pdbPath = Path.ChangeExtension(dll, ".pdb");
-                if (File.Exists(pdbPath))
+                Console.WriteLine($"Silindi: {dllName}");
+
+                // AynÄ± isimde .pdb, .deps.json, .runtimeconfig.json dosyalarÄ±nÄ± da kaldÄ±r
+                var relatedExtensions = new[] { ".pdb", ".deps.json", ".runtimeconfig.json" };
+                foreach (var ext in relatedExtensions)
                 {
-                    File.Delete(pdbPath);
+                    var relatedPath = Path.ChangeExtension(dll, ext);
+                    if (File.Exists(relatedPath))
+                    {
+                        try
+                        {
+                            File.SetAttributes(relatedPath, FileAttributes.Normal);
+                            File.Delete(relatedPath);
+                            Console.WriteLine($"Silindi: {Path.GetFileName(relatedPath)}");
+                        }
+                        catch (Exception ex2)
+                        {
+                            Console.WriteLine($"[WARN] {relatedPath} silinemedi: {ex2.Message}");
+                        }
+                    }
                 }
             }
-            catch
+            catch (IOException ioex)
             {
-                // Dosya hala kilitliyse bir sonraki başlangıçta silinir.
+                // Dosya kilitliyse, bir sonraki aÃ§Ä±lÄ±ÅŸta silinmek Ã¼zere yeniden adlandÄ±r
+                try
+                {
+                    var tempName = dll + ".delete";
+                    File.Move(dll, tempName, overwrite: true);
+                    Console.WriteLine($"Kilitliydi, yeniden adlandÄ±rÄ±ldÄ±: {dllName}");
+                }
+                catch
+                {
+                    Console.WriteLine($"[WARN] {dllName} silinemedi: {ioex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERR] {dllName} silinemedi: {ex.Message}");
             }
         }
     }
 }
 
-// === TEMİZLİĞİ BAŞLAT ===
+// === TEMÄ°ZLÄ°ÄÄ° BAÅLAT ===
 CleanupOldVersions();
 
 
@@ -244,13 +290,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         options.KnownNetworks.Clear();
 });
 
-// === YENİ EKLENECEK HTML SANITIZER AYARI ===
+// === YENÄ° EKLENECEK HTML SANITIZER AYARI ===
 builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
 {
-    // Yeni bir sanitizer nesnesi oluşturuyoruz.
+    // Yeni bir sanitizer nesnesi oluÅŸturuyoruz.
     var sanitizer = new HtmlSanitizer();
 
-    // Temizleme işleminden sonra kalmasına izin verdiğimiz HTML etiketleri:
+    // Temizleme iÅŸleminden sonra kalmasÄ±na izin verdiÄŸimiz HTML etiketleri:
     sanitizer.AllowedTags.Add("a");
     sanitizer.AllowedTags.Add("abbr");
     sanitizer.AllowedTags.Add("address");
@@ -353,11 +399,11 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedTags.Add("var");
     sanitizer.AllowedTags.Add("wbr");
 
-    // İzin verilen özellikler (attributes)
+    // Ä°zin verilen Ã¶zellikler (attributes)
     sanitizer.AllowedAttributes.Add("href");
     sanitizer.AllowedAttributes.Add("src");
     sanitizer.AllowedAttributes.Add("alt");
-    sanitizer.AllowedAttributes.Add("class"); // Bootstrap sınıfları için
+    sanitizer.AllowedAttributes.Add("class"); // Bootstrap sÄ±nÄ±flarÄ± iÃ§in
     sanitizer.AllowedAttributes.Add("style"); 
     sanitizer.AllowedAttributes.Add("rtl"); 
     sanitizer.AllowedAttributes.Add("type"); 
@@ -370,12 +416,12 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedAttributes.Add("data-masonry"); 
 
 
-    // Yapılandırılmış sanitizer nesnesini döndürüyoruz.
+    // YapÄ±landÄ±rÄ±lmÄ±ÅŸ sanitizer nesnesini dÃ¶ndÃ¼rÃ¼yoruz.
     return sanitizer;
 });
 
 // -----------------------------
-// Serilog (appsettings kontrollü)
+// Serilog (appsettings kontrollÃ¼)
 // -----------------------------
 bool loglamaAcik = builder.Configuration.GetValue<bool>("LoglamaAyarlari:Aktif");
 if (loglamaAcik)
@@ -405,16 +451,16 @@ builder.Services.Configure<RazorViewEngineOptions>(options =>
     options.ViewLocationExpanders.Add(new ActiveThemeViewLocationExpander());
 });
 
-// ConnectionString provider: kurulumdan sonra bellekte güncellenebilir
+// ConnectionString provider: kurulumdan sonra bellekte gÃ¼ncellenebilir
 builder.Services.AddSingleton<IConnectionStringProvider, ConnectionStringProvider>();
 
-// DbContext: her scope'ta provider'dan güncel connection string'i al
+// DbContext: her scope'ta provider'dan gÃ¼ncel connection string'i al
 builder.Services.AddDbContext<ApplicationDbContext>((sp, opts) =>
 {
     var prov = sp.GetRequiredService<IConnectionStringProvider>();
     var cs = prov.Current;
 
-    // Kurulum tamamlanana kadar boş olabilir; boşsa SQL Server'ı bağlama
+    // Kurulum tamamlanana kadar boÅŸ olabilir; boÅŸsa SQL Server'Ä± baÄŸlama
     if (!string.IsNullOrWhiteSpace(cs))
     {
         opts.UseSqlServer(cs);
@@ -432,7 +478,7 @@ builder.Services
         options.Password.RequiredLength = 6;
         options.Password.RequiredUniqueChars = 1;
 
-        // Kurulumda admini EmailConfirmed=true oluşturacaksan gerek yok:
+        // Kurulumda admini EmailConfirmed=true oluÅŸturacaksan gerek yok:
         // options.SignIn.RequireConfirmedEmail = false;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -443,25 +489,25 @@ builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, CustomUserClaimsPr
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // Cookie'nin temel ayarları
+    // Cookie'nin temel ayarlarÄ±
     options.Cookie.HttpOnly = true;
 
-    // Giriş yapılmamışsa (401 Unauthorized) yönlendirilecek sayfa.
-    // Projenizde bir AccountController ve Login action'ı olduğunu varsayıyoruz.
+    // GiriÅŸ yapÄ±lmamÄ±ÅŸsa (401 Unauthorized) yÃ¶nlendirilecek sayfa.
+    // Projenizde bir AccountController ve Login action'Ä± olduÄŸunu varsayÄ±yoruz.
     options.LoginPath = "/Dizgem/Account/Login";
 
-    // Giriş yapılmış ANCAK yetkisi yoksa (403 Forbidden) yönlendirilecek sayfa.
-    // Örneğin normal bir kullanıcının admin paneline girmeye çalışması.
+    // GiriÅŸ yapÄ±lmÄ±ÅŸ ANCAK yetkisi yoksa (403 Forbidden) yÃ¶nlendirilecek sayfa.
+    // Ã–rneÄŸin normal bir kullanÄ±cÄ±nÄ±n admin paneline girmeye Ã§alÄ±ÅŸmasÄ±.
     options.AccessDeniedPath = "/Dizgem/Account/AccessDenied";
 
-    // Kullanıcının güvenlik damgasının ne sıklıkla kontrol edileceğini belirler.
-    // Bu, rolleri veya claim'leri değişen bir kullanıcının oturumunun
-    // otomatik olarak güncellenmesini sağlar.
+    // KullanÄ±cÄ±nÄ±n gÃ¼venlik damgasÄ±nÄ±n ne sÄ±klÄ±kla kontrol edileceÄŸini belirler.
+    // Bu, rolleri veya claim'leri deÄŸiÅŸen bir kullanÄ±cÄ±nÄ±n oturumunun
+    // otomatik olarak gÃ¼ncellenmesini saÄŸlar.
     options.SlidingExpiration = true;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(180);
 });
 
-// Tema Ayarları için kullanılan scope
+// Tema AyarlarÄ± iÃ§in kullanÄ±lan scope
 builder.Services.AddScoped<Ensure2faFilter>();
 builder.Services.AddScoped<CustomUserClaimsPrincipalFactory>();
 builder.Services.AddScoped<IThemeService, ThemeService>();
@@ -492,8 +538,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Bu middleware, diğer yönlendirme middleware'lerinden ÖNCE gelmelidir.
-// Gelen istekteki proxy başlıklarını okur ve request şemasını (http/https) günceller.
+// Bu middleware, diÄŸer yÃ¶nlendirme middleware'lerinden Ã–NCE gelmelidir.
+// Gelen istekteki proxy baÅŸlÄ±klarÄ±nÄ± okur ve request ÅŸemasÄ±nÄ± (http/https) gÃ¼nceller.
 app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();
@@ -507,7 +553,7 @@ if (Directory.Exists(themesPath))
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(themesPath),
-        RequestPath = "/themes" // Tarayıcıda bu URL ile erişilecek
+        RequestPath = "/themes" // TarayÄ±cÄ±da bu URL ile eriÅŸilecek
     });
 }
 
@@ -518,12 +564,12 @@ app.UseRouting();
 
 app.UseMiddleware<FormHandlerMiddleware>();
 
-// Auth middleware HER ZAMAN aktif olmalı
+// Auth middleware HER ZAMAN aktif olmalÄ±
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Kurulum kontrolü (per-request)
-// Connection string yoksa /Install'a yönlendir; /Install üzerindeyken bırak geçsin.
+// Kurulum kontrolÃ¼ (per-request)
+// Connection string yoksa /Install'a yÃ¶nlendir; /Install Ã¼zerindeyken bÄ±rak geÃ§sin.
 app.Use(async (ctx, next) =>
 {
     var prov = ctx.RequestServices.GetRequiredService<IConnectionStringProvider>();
@@ -545,27 +591,27 @@ app.Use(async (ctx, next) =>
 // -----------------------------
 
 // 1. Admin Area Route'u
-// /dizgem admin girişi için route tanımı
+// /dizgem admin giriÅŸi iÃ§in route tanÄ±mÄ±
 app.MapControllerRoute(
     name: "AdminArea",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-// /Install ile başlayan tüm istekleri, PageDetail route'undan önce yakalar
-// ve doğruca InstallController'a yönlendirir.
+// /Install ile baÅŸlayan tÃ¼m istekleri, PageDetail route'undan Ã¶nce yakalar
+// ve doÄŸruca InstallController'a yÃ¶nlendirir.
 app.MapControllerRoute(
     name: "Install",
     pattern: "Install/{action=Index}/{id?}",
     defaults: new { controller = "Install" });
 
-// 2. Arşiv Sayfası Route'u
-// /archive/YYYY/MM formatındaki URL'leri yakalar.
+// 2. ArÅŸiv SayfasÄ± Route'u
+// /archive/YYYY/MM formatÄ±ndaki URL'leri yakalar.
 app.MapControllerRoute(
     name: "PostArchive",
     pattern: "archive/{year:int:min(2000)}/{month:int:range(1,12)}",
     defaults: new { controller = "Post", action = "Index" });
 
-// 3. Yazı Detay Sayfası Route'u
-// /post/slug-degeri formatındaki URL'leri yakalar.
+// 3. YazÄ± Detay SayfasÄ± Route'u
+// /post/slug-degeri formatÄ±ndaki URL'leri yakalar.
 app.MapControllerRoute(
     name: "PostDetail",
     pattern: "Post/{slug}",
@@ -581,14 +627,14 @@ app.MapControllerRoute(
     pattern: "{slug}",
     defaults: new { controller = "Page", action = "Detail" });
 
-// 4. Varsayılan Route
-// Diğer tüm istekleri karşılar. Her zaman en sonda olmalıdır.
+// 4. VarsayÄ±lan Route
+// DiÄŸer tÃ¼m istekleri karÅŸÄ±lar. Her zaman en sonda olmalÄ±dÄ±r.
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// İstersen özel bir "install" route’u da ayrıca açık tutabilirsin;
-// ancak default route zaten /Install/Index’i de çözer.
+// Ä°stersen Ã¶zel bir "install" routeâ€™u da ayrÄ±ca aÃ§Ä±k tutabilirsin;
+// ancak default route zaten /Install/Indexâ€™i de Ã§Ã¶zer.
 // app.MapControllerRoute(
 //     name: "install",
 //     pattern: "{controller=Install}/{action=Index}/{id?}");
