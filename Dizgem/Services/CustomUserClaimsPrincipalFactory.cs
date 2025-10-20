@@ -30,6 +30,31 @@ namespace Dizgem.Services
                 identity.AddClaim(new Claim("DisplayName", user.DisplayName));
             }
 
+            if (!string.IsNullOrEmpty(user.color_theme_layout))
+            {
+                identity.AddClaim(new Claim("color_theme_layout", user.color_theme_layout));
+            }
+
+            if (!string.IsNullOrEmpty(user.theme_layout))
+            {
+                identity.AddClaim(new Claim("theme_layout", user.theme_layout));
+            }
+
+            if (!string.IsNullOrEmpty(user.page_layout))
+            {
+                identity.AddClaim(new Claim("page_layout", user.page_layout));
+            }
+
+            if (!string.IsNullOrEmpty(user.layout))
+            {
+                identity.AddClaim(new Claim("layout", user.layout));
+            }
+
+            if (!string.IsNullOrEmpty(user.sidebar_type))
+            {
+                identity.AddClaim(new Claim("sidebar_type", user.sidebar_type));
+            }
+
             // Gelecekte eklenebilecek diğer özel claim'ler buraya gelebilir.
             // Örneğin: AvatarUrl, ProfileLink vb.
 

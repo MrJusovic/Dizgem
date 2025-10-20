@@ -43,8 +43,12 @@ namespace Dizgem.Areas.Dizgem.Controllers
                 TempData["SuccessMessage"] = "Ayarlar başarıyla güncellendi.";
                 return RedirectToAction(nameof(Index));
             }
+            else
+            {
+                TempData["ErrorMessage"] = ModelState.ToHtmlErrorList();
+            }
 
-            return View(model);
+                return View(model);
         }
     }
 }

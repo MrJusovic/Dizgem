@@ -38,3 +38,19 @@
         form.querySelector('textarea').focus();
     }
 </script>
+
+
+   <script>
+    function replyToComment(commentId, authorName) {
+        document.getElementById('comment-parent-id').value = commentId;
+        document.getElementById('reply-to-text').innerText = `'${authorName}' adlı kullanıcıya yanıt veriyorsunuz.`;
+        document.getElementById('reply-to-info').style.display = 'flex';
+        // Forma odaklan
+        document.getElementById('comment-form').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelReply() {
+        document.getElementById('comment-parent-id').value = '';
+        document.getElementById('reply-to-info').style.display = 'none';
+    }
+</script>

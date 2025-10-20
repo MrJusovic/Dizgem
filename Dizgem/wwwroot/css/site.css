@@ -21583,8 +21583,8 @@ html[data-layout=horizontal] .body-wrapper {
             }
 
             html[data-layout=horizontal] .sidebar-nav #sidebarnav > .sidebar-item:last-child > .first-level {
-                right: 0;
-                left: auto
+                left: 0;
+                right: auto
             }
 
             html[data-layout=horizontal] .sidebar-nav #sidebarnav > .sidebar-item > .two-column + .first-level {
@@ -31667,7 +31667,9 @@ body .select2-container--default .select2-selection--multiple .select2-selection
     flex-wrap: wrap;
     justify-content: flex-start;
     align-content: flex-start;
-    align-items: flex-start
+    align-items: flex-start;
+    overflow: hidden;
+    overflow-y: auto;
 }
 
 .simplebar-wrapper {

@@ -240,5 +240,51 @@ namespace Dizgem.Areas.Dizgem.Controllers
 
             return RedirectToAction("Index", new { statusMessage = "Profil başarıyla güncellendi." });
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CustomizeProfile([FromBody]CustomizeProfileModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return NotFound();
+            }
+
+            switch (model.field)
+            {
+                case "color_theme_layout":
+                    user.color_theme_layout = model.val;
+                    break;
+                case "theme_layout":
+                    user.theme_layout = model.val;
+                    break;
+                case "page_layout":
+                    user.page_layout = model.val;
+                    break;
+                case "layout":
+                    user.layout = model.val;
+                    break;
+                case "sidebar_type":
+                    user.sidebar_type = model.val;
+                    break;
+                default:
+                    break;
+            }
+
+            await _userManager.UpdateAsync(user);
+
+
+            // Kullanıcının claim'lerini içeren cookie'nin yenilenmesini tetiklemek için
+            // güvenlik damgasını güncelliyoruz.
+            await _userManager.UpdateSecurityStampAsync(user);
+            await _signInManager.RefreshSignInAsync(user);
+
+            return Ok(new { statusMessage = "Profil başarıyla güncellendi." });
+        }
     }
 }

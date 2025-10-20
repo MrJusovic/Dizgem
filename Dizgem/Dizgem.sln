@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dizgem", "Dizgem.csproj", "{F6245F36-F1D9-85C8-C84C-1ECE2F5690F9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F6245F36-F1D9-85C8-C84C-1ECE2F5690F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6245F36-F1D9-85C8-C84C-1ECE2F5690F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6245F36-F1D9-85C8-C84C-1ECE2F5690F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6245F36-F1D9-85C8-C84C-1ECE2F5690F9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3070D5D1-9696-4D3B-A479-B1A665F00AFC}
+	EndGlobalSection
+EndGlobal
