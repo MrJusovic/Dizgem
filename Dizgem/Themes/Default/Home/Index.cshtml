@@ -6,6 +6,15 @@
     var archives = await postService.GetPostArchiveAsync();
 }
 
+@{
+    // Bu partial view'a hangi yazı veya sayfa için çağrıldığını belirtmemiz gerekiyor.
+    var postId = ViewData["PostId"] as Guid?;
+    var pageId = ViewData["PageId"] as Guid?;
+
+    var settings = SettingsService.Current;
+    var comments = await CommentService.GetCommentsAsync(postId, pageId);
+}
+
 <div class="container">
     <div class="p-4 p-md-5 mb-4 text-white rounded bg-dark">
         <div class="col-md-6 px-0">
@@ -126,6 +135,20 @@
                    href="index.html"
                    tabindex="-1">Newer</a>
             </nav>
+
+            <article class="card mb-4">
+                @if (comments.Any())
+                {
+                    @foreach (var comment in comments)
+                    {
+                        <partial name="_CommentItemPartial" model="comment" />
+                    }
+                }
+                else
+                {
+                    <p>Henüz hiç yorum yapılmamış. İlk yorumu siz yapın!</p>
+                }
+            </article>
         </div>
         <div class="col-md-4">
             <div class="position-sticky" style="top: 2rem">

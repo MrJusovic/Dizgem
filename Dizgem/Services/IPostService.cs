@@ -29,6 +29,6 @@ namespace Dizgem.Services
         Task<PostEditViewModel<Post>> GetPostForEditAsync(Guid? postId);
         Task CreatePostAsync(PostEditViewModel<Post> model, Guid authorId);
         Task UpdatePostAsync(PostEditViewModel<Post> model);
-        Task<bool> DeletePostAsync(Guid postId);
+        Task<(bool Success, string Message)> DeletePostAsync(Guid postId);
     }
 }

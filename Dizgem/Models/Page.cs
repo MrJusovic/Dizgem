@@ -45,6 +45,13 @@ namespace Dizgem.Models
         // Yazar bilgisine erişim için navigasyon özelliği
         public User Author { get; set; }
 
+        [Display(Name = "Yorum Politikası")]
+        public CommentStatus CommentPolicy { get; set; } = CommentStatus.UseGlobal;
+
+        public ICollection<PageComment> Comments { get; set; }
+
+        [NotMapped]
+        public bool AreCommentsEnabled { get; set; } = true;
 
         // === SEO Alanları ===
         [StringLength(255)]

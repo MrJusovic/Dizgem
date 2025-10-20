@@ -24,7 +24,6 @@ namespace Dizgem.Controllers
             // PostService'i kullanarak ilgili sayfadaki ve/veya arşivdeki yazı özetlerini
             // ve sayfalama bilgilerini içeren bir ViewModel iste.
             var viewModel = await _postService.GetPublishedPostsAsync(page, pageSize, year, month);
-
             // Hazırlanan bu 'viewModel' nesnesini View'a gönder.
             // Bu sayede Index.cshtml dosyası, @Model.Posts, @Model.CurrentPage gibi
             // komutlarla hem yazı listesine hem de sayfa numaralarına erişebilir.
@@ -48,7 +47,7 @@ namespace Dizgem.Controllers
             {
                 return NotFound(); // Yazı yoksa 404 hatası göster.
             }
-
+            ViewData["postId"] = post.Id;
             // Bulunan 'post' nesnesini (yani Model'i) View'a gönder.
             return View(post);
         }

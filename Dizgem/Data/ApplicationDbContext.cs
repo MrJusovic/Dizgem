@@ -32,6 +32,10 @@ namespace Dizgem.Data
         public DbSet<FormHandler> FormHandlers { get; set; }
         public DbSet<FormSubmission> FormSubmissions { get; set; }
 
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<PostComment> PostComments { get; set; }
+        public DbSet<PageComment> PageComments { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -132,6 +136,42 @@ namespace Dizgem.Data
             builder.Entity<FormSubmission>()
                 .HasIndex(f => f.Id)
                 .IsUnique();
+
+            builder.Entity<Comment>()
+                .HasIndex(c => c.Id)
+                .IsUnique();
+
+
+
+            builder.Entity<PostComment>()
+                .HasKey(pt => new { pt.PostId, pt.CommentId });
+
+            builder.Entity<PageComment>()
+                .HasKey(pt => new { pt.PageId, pt.CommentId });
+
+            // Post -> PostComment ilişkisi
+            builder.Entity<PostComment>()
+                .HasOne(pt => pt.Post)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(pt => pt.PostId);
+
+            // Comment -> PostComment ilişkisi
+            builder.Entity<PostComment>()
+                .HasOne(pt => pt.Comment)
+                .WithMany(t => t.PostComments)
+                .HasForeignKey(pt => pt.CommentId);
+
+            // Page -> PageComment ilişkisi
+            builder.Entity<PageComment>()
+                .HasOne(pt => pt.Page)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(pt => pt.PageId);
+
+            // Comment -> PageComment ilişkisi
+            builder.Entity<PageComment>()
+                .HasOne(pt => pt.Comment)
+                .WithMany(t => t.PageComments)
+                .HasForeignKey(pt => pt.CommentId);
         }
     }
 }

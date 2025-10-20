@@ -2,6 +2,7 @@
 using Dizgem.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using NuGet.Configuration;
 using System.Security.Claims;
 
 namespace Dizgem.Services
@@ -13,15 +14,18 @@ namespace Dizgem.Services
         private readonly ISeoService _seoService;
         private readonly IExcerptService _excerptService;
         private readonly IEditorJsHtmlParser _htmlParser;
+        private readonly ICommentService _commentService;
+        private readonly ISettingsService _settingsService;
 
-
-        public PostService(ApplicationDbContext context, ISlugService slugService, ISeoService seoService, IExcerptService excerptService, IEditorJsHtmlParser htmlParser)
+        public PostService(ApplicationDbContext context, ISlugService slugService, ISeoService seoService, IExcerptService excerptService, IEditorJsHtmlParser htmlParser, ICommentService commentService, ISettingsService settingsService)
         {
             _context = context;
             _slugService = slugService;
             _seoService = seoService;
             _excerptService = excerptService;
             _htmlParser = htmlParser;
+            _commentService = commentService;
+            _settingsService = settingsService;
         }
 
         // --- Ön Yüz Metotları ---
@@ -30,6 +34,8 @@ namespace Dizgem.Services
         {
             var query = _context.Posts
                 .Where(p => p.IsPublished);
+
+            var globalCommentsEnabled = _settingsService.Current.EnableComments;
 
             if (year.HasValue)
             {
@@ -52,7 +58,16 @@ namespace Dizgem.Services
                     CoverPhotoUrl = p.CoverPhotoUrl,
                     PublishedDate = p.PublishedDate,
                     AuthorDisplayName = p.Author.DisplayName,
-                    PrimaryCategoryName = p.PostCategories.FirstOrDefault(pc => pc.IsPrimary).Category.Name
+                    PrimaryCategoryName = p.PostCategories.FirstOrDefault(pc => pc.IsPrimary).Category.Name,
+                    
+                    CommentCount = p.Comments.Count(c => c.Comment.IsApproved),
+
+                    // 2. Yorumların açık olup olmadığını hesapla
+                    // Yorum Politikası 'Açık' ise VEYA
+                    // Yorum Politikası 'Varsayılan' VE genel ayarlar 'Açık' ise yorumlar etkindir.
+                    AreCommentsEnabled =
+                        p.CommentPolicy == CommentStatus.Open ||
+                        (p.CommentPolicy == CommentStatus.UseGlobal && globalCommentsEnabled)
                 }).ToListAsync();
 
             return new PostIndexViewModel
@@ -67,11 +82,38 @@ namespace Dizgem.Services
 
         public async Task<Post> GetPostBySlugAsync(string slug)
         {
-            return await _context.Posts
+            // 1. Adım: Veritabanından ilgili Post nesnesini bulalım.
+            var post = await _context.Posts
                 .Include(p => p.Author)
                 .Include(p => p.PostCategories).ThenInclude(pc => pc.Category)
                 .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.IsPublished && p.Slug == slug);
+
+            // Eğer yazı bulunamazsa, null döndür.
+            if (post == null)
+            {
+                return null;
+            }
+
+            // 2. Adım: Genel yorum ayarlarını alalım.
+            var settings = _settingsService.Current;
+            var globalCommentsEnabled = settings.EnableComments;
+
+            // 3. Adım: Yazı için yorumların etkin olup olmadığını hesaplayalım.
+            var areCommentsEnabled =
+                post.CommentPolicy == CommentStatus.Open ||
+                (post.CommentPolicy == CommentStatus.UseGlobal && globalCommentsEnabled);
+           post.AreCommentsEnabled = areCommentsEnabled;
+            //List<CommentViewModel> comments = new List<CommentViewModel>();
+            //if (areCommentsEnabled)
+            //{
+            //    // Yorum servisini kullanarak bu yazıya ait yorumları çekin.
+            //    comments = await _commentService.GetCommentsAsync(post.Id, null);
+            //}
+            
+            // 4. Adım: Doldurulmuş PostDetailViewModel nesnesini döndürelim.
+            return post;
         }
 
         public async Task<IEnumerable<PostArchiveItemViewModel>> GetPostArchiveAsync()
@@ -149,17 +191,28 @@ namespace Dizgem.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> DeletePostAsync(Guid postId)
+        public async Task<(bool Success, string Message)> DeletePostAsync(Guid postId)
         {
             var post = await _context.Posts.FindAsync(postId);
             if (post == null)
             {
-                return false;
+                return (false, "Silinecek yazı bulunamadı.");
             }
+
+            // İlişkili verileri de silmek önemlidir (cascade delete ayarlanmadıysa)
+            var postCategories = _context.PostCategories.Where(pc => pc.PostId == postId);
+            _context.PostCategories.RemoveRange(postCategories);
+
+            var postTags = _context.PostTags.Where(pt => pt.PostId == postId);
+            _context.PostTags.RemoveRange(postTags);
+
+            var comments = _context.Comments.Where(c => c.PostId == postId);
+            _context.Comments.RemoveRange(comments);
 
             _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
-            return true;
+
+            return (true, "Yazı başarıyla silindi.");
         }
 
         private async Task ProcessPostData(Post post, PostEditViewModel<Post> model)

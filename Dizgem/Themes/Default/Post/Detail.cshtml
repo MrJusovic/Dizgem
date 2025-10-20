@@ -26,6 +26,12 @@
                     @Model?.RenderedContent
                 </div>
             </article><!-- /.card -->
+            @{
+                if (Model?.AreCommentsEnabled ?? false)
+                {
+                    <partial name="_CommentsPartial"  />
+                }
+            }
 
         </div>
         <div class="col-md-3 ms-auto">

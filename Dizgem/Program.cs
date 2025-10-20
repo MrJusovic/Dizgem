@@ -523,6 +523,7 @@ builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<ISitemapService, SitemapService>();
 builder.Services.AddScoped<IFormProcessingService, FormProcessingService>();
 builder.Services.AddScoped<IThemeEditorService, ThemeEditorService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 
 var app = builder.Build();

@@ -28,6 +28,6 @@ namespace Dizgem.Services
         Task<PostEditViewModel<Page>> GetPageForEditAsync(Guid? postId);
         Task CreatePageAsync(PostEditViewModel<Page> model, Guid authorId);
         Task UpdatePageAsync(PostEditViewModel<Page> model);
-        Task<bool> DeletePageAsync(Guid postId);
+        Task<(bool Success, string Message)> DeletePageAsync(Guid postId);
     }
 }

@@ -146,6 +146,15 @@
                     </label>
                 </div>
 
+                <div class="mb-3">
+                    <label asp-for="Post.CommentPolicy" class="form-label"></label>
+                    <select asp-for="Post.CommentPolicy" asp-items="Html.GetEnumSelectList<CommentStatus>()" class="form-select">
+                    </select>
+                    <small class="form-text text-muted">
+                        Bu yazı için yorumların durumunu belirleyin. 'Default' seçeneği, sitenin genel yorum ayarını kullanır.
+                    </small>
+                </div>
+
                 <div class="form-group mt-3 d-flex justify-content-between">
                     <a asp-action="Index" class="btn btn-secondary">Geri Dön</a>
                     <input type="submit" value="Kaydet" id="save-button" class="btn btn-primary" />

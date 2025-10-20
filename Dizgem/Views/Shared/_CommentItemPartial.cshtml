@@ -1,0 +1,40 @@
+﻿@model CommentViewModel
+
+<div class="comment-item mb-3" id="comment-@Model.Id">
+    <div class="d-flex">
+        <div class="flex-shrink-0">
+            <!-- Gravatar veya varsayılan avatar eklenebilir -->
+            <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD//gA7Q1JFQVRPUjogZ2QtanBlZyB2MS4wICh1c2luZyBJSkcgSlBFRyB2NjIpLCBxdWFsaXR5ID0gOTAK/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8AAEQgAUABQAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/aAAwDAQACEQMRAD8A+uKKKKACiiigAooooAKKKKACiiigAooooAKKK9P+G/geI28Wr38Qkd/mt4nGQB/fI7n0/OgDi9N8Fa3q0QlttPkMZ5DyEID9NxGaNS8Fa3pMRkuNPkEY5Lx4cD67ScV9AUUAfMlFen/EjwPH9nl1ewiEbp81xEgwCP74HYjv+deYUAFFFFABRRRQBZ0y0/tDUbW1zjzpVjz9SBX0bFCkESxxqFRFCqo7AdBXzvoNytnrenzucJHcRux9gwzX0bQAUUUUARTQpPE8cihkdSrKe4PUV85anafYNRurY8+TK0efoSK+kq+cteuVvNb1CdDlJLiR1PsWOKAKNFFFABRRRQAV7d8PvFMfiDSo4JHH262UJIpPLAcBh/X3rxa2tZryZYbeJ5pW6JGpYn8BXY+H/h54jjvIbmMjS2U5EruNwH+6M/kaAPZaKhgV44UWR/McKAz4xuPc47UTq8kLrG/luVIV8Z2nscd6AOY+IHimPw/pMkMbj7dcqUjUHlQeC3+HvXiNdt4g+HniOS8muZCNUZjkyo43Ef7px+Qrjrm1ms5mhuInhlXqkilSPwNAEVFFFABV7RNHn17U4LK3H7yU/ePRR3J+gqjXpfwb05S2oXzDLLthQ+meW/8AZaAO48PeGrLw3aCG1jG8j55mHzufc/0rYoooAKKKKACsfxD4asvEloYbqMbwPkmUfOh9j/StiigD5y1vSJ9C1KeyuB+8iONw6MOxH1FUa9L+MmnKG0++UYZt0Ln1xyv/ALNXmlAH/9k=" class="rounded-circle" width="50" alt="@Model.AuthorName" />
+        </div>
+        <div class="ms-3 flex-grow-1">
+            <div class="fw-bold">@Model.AuthorName</div>
+            <div class="text-muted small">@Model.TimeAgo</div>
+            <p class="mt-2">@Model.Content</p>
+            <button class="btn btn-sm btn-link text-decoration-none" onclick="setReplyTo('@Model.Id')">Yanıtla</button>
+        </div>
+    </div>
+
+    <!-- Cevaplar (Replies) - İç içe yapı -->
+    @if (Model.Replies.Any())
+    {
+        <div class="replies ps-5 mt-3">
+            @foreach (var reply in Model.Replies)
+            {
+                <partial name="_CommentItemPartial" model="reply" />
+            }
+        </div>
+    }
+</div>
+
+@* Sadece bu partial için gerekli olan script.
+   Bu script'i ana _Layout.cshtml dosyanızın script bölümüne taşımak daha iyi bir pratiktir.
+*@
+<script>
+    function setReplyTo(parentId) {
+        document.getElementById('comment-parent-id-input').value = parentId;
+        // Kullanıcıya görsel bir geri bildirim vermek için formu hedef alabiliriz
+        var form = document.querySelector('.comments-section form');
+        form.scrollIntoView({ behavior: 'smooth' });
+        form.querySelector('textarea').focus();
+    }
+</script>

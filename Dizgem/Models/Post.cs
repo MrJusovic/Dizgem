@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Html;
+﻿using Dizgem.Services;
+using Microsoft.AspNetCore.Html;
+using Microsoft.Extensions.Hosting;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -46,6 +48,13 @@ namespace Dizgem.Models
         // Yazar bilgisine erişim için navigasyon özelliği
         public User Author { get; set; }
 
+        [Display(Name = "Yorum Politikası")]
+        public CommentStatus CommentPolicy { get; set; } = CommentStatus.UseGlobal;
+
+        public ICollection<PostComment> Comments { get; set; }
+
+        [NotMapped]
+        public bool AreCommentsEnabled { get; set; } = true;
 
         // === SEO Alanları ===
         [StringLength(255)]

@@ -1,0 +1,65 @@
+﻿
+@{
+    // Bu partial view'a hangi yazı veya sayfa için çağrıldığını belirtmemiz gerekiyor.
+    var postId = ViewData["PostId"] as Guid?;
+    var pageId = ViewData["PageId"] as Guid?;
+
+    var settings = SettingsService.Current;
+    var comments = await CommentService.GetCommentsAsync(postId, pageId);
+}
+
+<section class="comments-section mt-5">
+    <h4 class="mb-4">Yorumlar (@comments.Count)</h4>
+
+    <!-- Yeni Yorum Formu -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Bir Yorum Bırakın</h5>
+            <form asp-controller="Comments" asp-action="Post" method="post">
+                @Html.AntiForgeryToken()
+                @* <input type="hidden" value="@Context.Request.PathBase" /> *@
+                <!-- Hangi yazıya/sayfaya yorum yapıldığını bildiren gizli alanlar -->
+                @if (postId.HasValue)
+                {
+                    <input type="hidden" name="PostId" value="@postId.Value" />
+                }
+                @if (pageId.HasValue)
+                {
+                    <input type="hidden" name="PageId" value="@pageId.Value" />
+                }
+
+                <!-- Cevap verilecek yorumun ID'si (JavaScript ile doldurulacak) -->
+                <input type="hidden" name="ParentId" value="" id="comment-parent-id-input" />
+
+                <div class="mb-3">
+                    <label for="AuthorName" class="form-label">İsim</label>
+                    <input type="text" class="form-control" id="AuthorName" name="AuthorName" required />
+                </div>
+                <div class="mb-3">
+                    <label for="AuthorEmail" class="form-label">E-posta</label>
+                    <input type="email" class="form-control" id="AuthorEmail" name="AuthorEmail" required />
+                </div>
+                <div class="mb-3">
+                    <label for="Content" class="form-label">Yorum</label>
+                    <textarea class="form-control" id="Content" name="Content" rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Yorumu Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Yorum Listesi -->
+    <div class="comment-list">
+        @if (comments.Any())
+        {
+            @foreach (var comment in comments)
+            {
+                <partial name="_CommentItemPartial" model="comment" />
+            }
+        }
+        else
+        {
+            <p>Henüz hiç yorum yapılmamış. İlk yorumu siz yapın!</p>
+        }
+    </div>
+</section>

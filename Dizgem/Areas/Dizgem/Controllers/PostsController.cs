@@ -114,12 +114,8 @@ namespace Dizgem.Areas.Dizgem.Controllers
         public async Task<IActionResult> DeleteConfirmed(Guid id)
         {
             var success = await _postService.DeletePostAsync(id);
-            if (!success)
-            {
-                return Json(new { success = false, message = "Yazı bulunamadı veya silinirken bir hata oluştu." });
-            }
+            return Json(new { success = success.Success, message = success.Message });
 
-            return Json(new { success = true, message = "Yazı başarıyla silindi." });
         }
 
         [HttpPost]

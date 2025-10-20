@@ -50,5 +50,8 @@ namespace Dizgem.Models
         [Display(Name = "Gönderen E-posta Adresi")]
         [EmailAddress]
         public string? SmtpFromEmail { get; set; }
+
+        [Display(Name = "Tüm Sitede Yorumlara İzin Ver")]
+        public bool EnableComments { get; set; } = true; // Varsayılan olarak yorumlar açık
     }
 }

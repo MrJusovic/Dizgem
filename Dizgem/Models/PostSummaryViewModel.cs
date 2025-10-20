@@ -13,5 +13,15 @@
         public DateTime PublishedDate { get; set; }
         public string AuthorDisplayName { get; set; }
         public string PrimaryCategoryName { get; set; }
+
+        /// <summary>
+        /// Bu yazı için yorumların gösterilip gösterilmeyeceğini belirtir.
+        /// </summary>
+        public bool AreCommentsEnabled { get; set; }
+
+        /// <summary>
+        /// Yazının onaylanmış yorum sayısı.
+        /// </summary>
+        public int CommentCount { get; set; }
     }
 }

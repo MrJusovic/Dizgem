@@ -13,15 +13,19 @@ namespace Dizgem.Services
         private readonly ISeoService _seoService;
         private readonly IExcerptService _excerptService;
         private readonly IEditorJsHtmlParser _htmlParser;
+        private readonly ICommentService _commentService;
+        private readonly ISettingsService _settingsService;
 
 
-        public PageService(ApplicationDbContext context, ISlugService slugService, ISeoService seoService, IExcerptService excerptService, IEditorJsHtmlParser htmlParser)
+        public PageService(ApplicationDbContext context, ISlugService slugService, ISeoService seoService, IExcerptService excerptService, IEditorJsHtmlParser htmlParser, ICommentService commentService, ISettingsService settingsService)
         {
             _context = context;
             _slugService = slugService;
             _seoService = seoService;
             _excerptService = excerptService;
             _htmlParser = htmlParser;
+            _commentService = commentService;
+            _settingsService = settingsService;
         }
 
         // --- Ön Yüz Metotları ---
@@ -67,11 +71,31 @@ namespace Dizgem.Services
 
         public async Task<Page> GetPageBySlugAsync(string slug)
         {
-            return await _context.Pages
+            // 1. Adım: Veritabanından ilgili Post nesnesini bulalım.
+            var page = await _context.Pages
                 .Include(p => p.Author)
                 .Include(p => p.PageCategories).ThenInclude(pc => pc.Category)
                 .Include(p => p.PageTags).ThenInclude(pt => pt.Tag)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.IsPublished && p.Slug == slug);
+
+            // Eğer yazı bulunamazsa, null döndür.
+            if (page == null)
+            {
+                return null;
+            }
+
+            // 2. Adım: Genel yorum ayarlarını alalım.
+            var settings = _settingsService.Current;
+            var globalCommentsEnabled = settings.EnableComments;
+
+            // 3. Adım: Yazı için yorumların etkin olup olmadığını hesaplayalım.
+            var areCommentsEnabled =
+                page.CommentPolicy == CommentStatus.Open ||
+                (page.CommentPolicy == CommentStatus.UseGlobal && globalCommentsEnabled);
+            page.AreCommentsEnabled = areCommentsEnabled;
+            // 4. Adım: Doldurulmuş PostDetailViewModel nesnesini döndürelim.
+            return page;
         }
 
         public async Task<IEnumerable<PostArchiveItemViewModel>> GetPageArchiveAsync()
@@ -148,17 +172,29 @@ namespace Dizgem.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> DeletePageAsync(Guid pageId)
+        public async Task<(bool Success, string Message)> DeletePageAsync(Guid pageId)
         {
-            var page = await _context.Pages.FindAsync(pageId);
-            if (page == null)
+            var post = await _context.Posts.FindAsync(pageId);
+            if (post == null)
             {
-                return false;
+                return (false, "Silinecek yazı bulunamadı.");
             }
 
-            _context.Pages.Remove(page);
+            // İlişkili verileri de silmek önemlidir (cascade delete ayarlanmadıysa)
+            var pageCategories = _context.PageCategories.Where(pc => pc.PageId == pageId);
+            _context.PageCategories.RemoveRange(pageCategories);
+
+            var pageTags = _context.PageTags.Where(pt => pt.PageId == pageId);
+            _context.PageTags.RemoveRange(pageTags);
+
+
+            var comments = _context.Comments.Where(c => c.PageId == pageId);
+            _context.Comments.RemoveRange(comments);
+
+            _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
-            return true;
+
+            return (true, "Yazı başarıyla silindi.");
         }
 
         private async Task ProcessPostData(Page page, PostEditViewModel<Page> model)

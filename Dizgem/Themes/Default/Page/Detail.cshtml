@@ -7,10 +7,20 @@
 }
 
 <div class="container">
-    <div class="row">
+    <div class="row mb-3">
         <div class="col-12">
             <h3 class="mb-4">@Model?.Title</h3>
             @Model?.RenderedContent
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            @{
+                if (Model?.AreCommentsEnabled ?? false)
+                {
+                    <partial name="_CommentsPartial" />
+                }
+            }
         </div>
     </div>
 </div>

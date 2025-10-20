@@ -49,6 +49,8 @@ namespace Dizgem.Controllers
                 return NotFound(); // Yazı yoksa 404 hatası göster.
             }
 
+            ViewData["PageId"] = post.Id;
+
             // Bulunan 'post' nesnesini (yani Model'i) View'a gönder.
             return View(post);
         }
