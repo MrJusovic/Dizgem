@@ -1,5 +1,6 @@
 ﻿using Dizgem.Data;
 using Dizgem.Models;
+using Microsoft.IdentityModel.Logging;
 using System.Net;
 using System.Net.Mail;
 using System.Text;
@@ -35,14 +36,22 @@ namespace Dizgem.Services
 
         private async Task<bool> SaveToDatabaseAsync(FormHandler handler, IFormCollection formData)
         {
-            var submission = new FormSubmission
+            try
             {
-                FormHandlerId = handler.Id,
-                DataJson = JsonSerializer.Serialize(formData.Where(x=> !x.Key.StartsWith("__") && x.Key.ToLower() != "data-dizgem-handler-id").ToDictionary(k => k.Key, v => v.Value.ToString()))
-            };
-            _context.FormSubmissions.Add(submission);
-            await _context.SaveChangesAsync();
-            return true;
+                var submission = new FormSubmission
+                {
+                    FormHandlerId = handler.Id,
+                    DataJson = JsonSerializer.Serialize(formData.Where(x => !x.Key.StartsWith("__") && x.Key.ToLower() != "data-dizgem-handler-id").ToDictionary(k => k.Key, v => v.Value.ToString()))
+                };
+                _context.FormSubmissions.Add(submission);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogHelper.LogExceptionMessage(ex);
+                return false;
+            }
         }
 
         private async Task<bool> SendEmailAsync(FormHandler handler, IFormCollection formData)
@@ -83,8 +92,9 @@ namespace Dizgem.Services
                 await client.SendMailAsync(mailMessage);
                 return true;
             }
-            catch
+            catch (Exception ex) 
             {
+                LogHelper.LogExceptionMessage(ex);
                 // E-posta gönderme hatası
                 return false;
             }

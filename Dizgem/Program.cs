@@ -10,142 +10,108 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Logging;
 using Serilog;
 using System;
 using System.Reflection;
+using System.Text.Json;
 
 // UYGULAMA BAŞLANGIÇ NOKTASI
 
 // Güncelleme kontrolünü ve işlemini yapacak statik metot
-static void ApplyUpdateIfAvailable()
+bool ApplyUpdateIfAvailable(Microsoft.Extensions.Logging.ILogger logger)
 {
     var rootPath = Directory.GetCurrentDirectory();
     var flagPath = Path.Combine(rootPath, "update.flag");
     var updateSourcePath = Path.Combine(rootPath, "_update", "new_version");
-    var backupPath = Path.Combine(rootPath, "_backup_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+    var backupPath = Path.Combine(rootPath, "_backup_" + Guid.NewGuid().ToString("N")[..8]);
 
     if (!File.Exists(flagPath))
-        return;
+        return false;
 
-    void Log(string message)
-    {
-        var logFilePath = Path.Combine(rootPath, "update_log.txt");
-        File.AppendAllText(logFilePath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{Environment.NewLine}");
-    }
+    void Log(string m) => File.AppendAllText(Path.Combine(rootPath, "update_log.txt"),
+        $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {m}{Environment.NewLine}");
 
     Log("Güncelleme başlatıldı.");
 
     try
     {
-        // ← ÖNEMLİ: Tüm içerik kopyalansın diye kök olarak doğrudan new_version'ı al.
         var sourceRoot = updateSourcePath;
-
         if (!Directory.Exists(sourceRoot) || !Directory.EnumerateFileSystemEntries(sourceRoot).Any())
         {
-            Log("Kaynak dizin boş veya yok. İşlem iptal.");
-            return;
+            Log("Kaynak dizin boş veya yok. Update iptal.");
+            return false;
         }
 
         Log($"Kaynak dizin: {sourceRoot}");
 
-        Log("Yedekleme klasörü oluşturuluyor: " + backupPath);
         Directory.CreateDirectory(backupPath);
 
-        // Tüm dosyaları tek tek işle (akışlı): 
         var sourceFiles = Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories).ToList();
         Log($"{sourceFiles.Count} adet dosya kopyalanacak.");
 
-        // 1) Var olanları yedekleyip taşı (gölgele)
         foreach (var file in sourceFiles)
         {
-            var relativePath = Path.GetRelativePath(sourceRoot, file);
-            var destinationPath = Path.Combine(rootPath, relativePath);
+            var rel = Path.GetRelativePath(sourceRoot, file);
+            var dest = Path.Combine(rootPath, rel);
 
-            if (File.Exists(destinationPath))
+            if (File.Exists(dest))
             {
                 try
                 {
-                    var backupFilePath = Path.Combine(backupPath, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(backupFilePath)!);
-                    Log($"Yedekleniyor ve yeniden adlandırılıyor: {destinationPath}");
-                    File.Move(destinationPath, backupFilePath);
+                    var bak = Path.Combine(backupPath, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(bak)!);
+                    Log($"Yedekleniyor: {dest}");
+                    File.Move(dest, bak);
                 }
                 catch (Exception ex2)
                 {
-                    Log($"[ERR] Move(backup) : {ex2.Message}");
+                    Log($"[ERR] backup: {ex2.Message}");
                 }
             }
         }
 
-        // 2) Yeni dosyaları yerine kopyala (üzerine yazma davranışı biz taşıdığımız için burada net)
-        Log("Yeni dosyalar kopyalanıyor...");
         foreach (var file in sourceFiles)
         {
-            try
-            {
-                var relativePath = Path.GetRelativePath(sourceRoot, file);
-                var destinationPath = Path.Combine(rootPath, relativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-                File.Copy(file, destinationPath, overwrite: true);
-            }
-            catch (Exception ex2)
-            {
-                Log($"[ERR] Relative Move(backup) : {ex2.Message}");
-            }
-
+            var rel = Path.GetRelativePath(sourceRoot, file);
+            var dest = Path.Combine(rootPath, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            File.Copy(file, dest, overwrite: true);
         }
 
-        Log("Güncelleme başarıyla tamamlandı. Temizlik yapılıyor.");
+        Log("Güncelleme dosyaları kopyalandı (bayrak korunuyor).");
+        return true; // ← kritik: restart tetiklenecek
     }
     catch (Exception ex)
     {
-        Log($"HATA OLUŞTU: {ex.Message}");
-        Log("Güncelleme geri alınıyor...");
+        Log($"HATA: {ex.Message}");
+        // rollback (kısaltılmış)
         try
         {
             if (Directory.Exists(backupPath))
             {
-                foreach (var file in Directory.EnumerateFiles(backupPath, "*", SearchOption.AllDirectories))
+                foreach (var f in Directory.EnumerateFiles(backupPath, "*", SearchOption.AllDirectories))
                 {
-                    var relativePath = Path.GetRelativePath(backupPath, file);
-                    var destinationPath = Path.Combine(rootPath, relativePath);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-                    File.Copy(file, destinationPath, overwrite: true);
+                    var rel = Path.GetRelativePath(backupPath, f);
+                    var dest = Path.Combine(rootPath, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    File.Copy(f, dest, overwrite: true);
                 }
             }
-            Log("Geri alma işlemi tamamlandı.");
         }
-        catch (Exception rollbackEx)
-        {
-            Log($"GERİ ALMA SIRASINDA HATA: {rollbackEx.Message}");
-        }
+        catch (Exception rex) { Log($"ROLLBACK HATASI: {rex.Message}"); }
+        return false;
     }
     finally
     {
-        Log("Geçici dosyalar siliniyor...");
-        try
-        {
-            var updateFolder = Path.Combine(rootPath, "_update");
-            if (Directory.Exists(updateFolder))
-                Directory.Delete(updateFolder, recursive: true);
-
-            if (Directory.Exists(backupPath))
-                Directory.Delete(backupPath, recursive: true);
-
-            // Güncelleme başarıyla bittiyse bayrağı kaldırmak çoğu senaryoda istenir:
-            // if (File.Exists(flagPath)) File.Delete(flagPath);
-        }
-        catch (Exception cleanupEx)
-        {
-            Log($"Temizlik sırasında hata: {cleanupEx.Message}");
-        }
-
-        Log("Temizlik tamamlandı.");
+        // DİKKAT: _update ve flag burada silinmiyor.
+        // Sadece geçici backup’ı temizleyebiliriz:
+        try { if (Directory.Exists(backupPath)) Directory.Delete(backupPath, true); } catch { }
     }
 }
 
 // 2. ADIM: Veritabanı migration'ını uygular ve geçici dosyaları temizler.
-static void ApplyMigrationsAndCleanup(IHost app)
+void ApplyMigrationsAndCleanup(IHost app)
 {
     var rootPath = Directory.GetCurrentDirectory();
     var flagPath = Path.Combine(rootPath, "update.flag");
@@ -196,84 +162,50 @@ static void ApplyMigrationsAndCleanup(IHost app)
 
 // === GÜNCELLEMEYİ UYGULA ===
 // Bu komut, Program.cs'deki diğer her şeyden önce çalışmalıdır.
-ApplyUpdateIfAvailable();
+//ApplyUpdateIfAvailable();
 
-static void CleanupOldVersions()
+async void CleanupOldVersions()
 {
     var rootPath = Directory.GetCurrentDirectory();
-    var entryAssembly = Assembly.GetEntryAssembly();
-    if (entryAssembly == null)
-        return;
+    var manifestPath = Path.Combine(rootPath, "update.manifest.json");
 
-    var currentAssemblyName = entryAssembly.GetName().Name;
-    var currentVersionDll = Path.GetFileName(entryAssembly.Location);
-    var currentBaseName = Path.GetFileNameWithoutExtension(currentVersionDll);
-
-    // "Dizgem_v*.dll" formatında eski sürümleri bul
-    var versionedDlls = Directory.GetFiles(rootPath, $"{currentAssemblyName}_v*.dll", SearchOption.TopDirectoryOnly);
-
-    foreach (var dll in versionedDlls)
+    // Sadece bir güncelleme yapıldıysa bu bloğu çalıştır.
+    if (!File.Exists(manifestPath))
     {
-        var dllName = Path.GetFileName(dll);
+        return;
+    }
 
-        // Şu anki çalışanın kendisi değilse, silebiliriz
-        if (!dllName.Equals(currentVersionDll, StringComparison.OrdinalIgnoreCase))
+    try
+    {
+        using var fs = File.OpenRead(manifestPath);
+        var json = await JsonDocument.ParseAsync(fs);
+        if (json.RootElement.TryGetProperty("remove", out var removeArray) && removeArray.ValueKind == JsonValueKind.Array)
         {
-            try
+            foreach (var item in removeArray.EnumerateArray())
             {
-                // Dosya erişim kısıtlıysa bayrakları temizle
-                if (File.Exists(dll))
-                    File.SetAttributes(dll, FileAttributes.Normal);
+                var relPath = item.GetString();
+                if (string.IsNullOrWhiteSpace(relPath)) continue;
 
-                File.Delete(dll);
-                Console.WriteLine($"Silindi: {dllName}");
-
-                // Aynı isimde .pdb, .deps.json, .runtimeconfig.json dosyalarını da kaldır
-                var relatedExtensions = new[] { ".pdb", ".deps.json", ".runtimeconfig.json" };
-                foreach (var ext in relatedExtensions)
+                var targetPath = Path.Combine(rootPath, relPath);
+                if (Directory.Exists(targetPath))
                 {
-                    var relatedPath = Path.ChangeExtension(dll, ext);
-                    if (File.Exists(relatedPath))
-                    {
-                        try
-                        {
-                            File.SetAttributes(relatedPath, FileAttributes.Normal);
-                            File.Delete(relatedPath);
-                            Console.WriteLine($"Silindi: {Path.GetFileName(relatedPath)}");
-                        }
-                        catch (Exception ex2)
-                        {
-                            Console.WriteLine($"[WARN] {relatedPath} silinemedi: {ex2.Message}");
-                        }
-                    }
+                    Directory.Delete(targetPath, true);
                 }
-            }
-            catch (IOException ioex)
-            {
-                // Dosya kilitliyse, bir sonraki açılışta silinmek üzere yeniden adlandır
-                try
+                else if (File.Exists(targetPath))
                 {
-                    var tempName = dll + ".delete";
-                    File.Move(dll, tempName, overwrite: true);
-                    Console.WriteLine($"Kilitliydi, yeniden adlandırıldı: {dllName}");
+                    try { File.SetAttributes(targetPath, FileAttributes.Normal); } catch { }
+                    File.Delete(targetPath);
                 }
-                catch
-                {
-                    Console.WriteLine($"[WARN] {dllName} silinemedi: {ioex.Message}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERR] {dllName} silinemedi: {ex.Message}");
             }
         }
+        File.Delete(manifestPath);
+
+    }
+    catch (Exception ex)
+    {
+        LogHelper.LogWarning($"Manifest uygulanamadı: {ex.Message}");
     }
 }
-
-// === TEMİZLİĞİ BAŞLAT ===
-CleanupOldVersions();
-
-
 
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -529,7 +461,31 @@ builder.Services.AddScoped<IGitEventsService, GitEventsService>();
 
 var app = builder.Build();
 
-ApplyMigrationsAndCleanup(app);
+bool updateApplied = ApplyUpdateIfAvailable(app.Logger); // ← sadece True/False dönsün
+
+if (updateApplied)
+{
+    // Uygulama tam start olduktan 500ms sonra nazikçe durdur.
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
+            app.Logger.LogInformation("Update uygulandı. Yeni binayı yüklemek için yeniden başlatılıyor...");
+            app.Lifetime.StopApplication();
+        });
+    });
+}
+else
+{
+    // Update bayrağı yoksa ya da update bu sefer koşmadıysa, normal akışta migration + temizlik yap.
+    // (Eğer bayrağı özellikle bir sonraki açılışa bırakmak istiyorsan, bu bloğu aşağıdaki gibi 2. açılışa taşı)
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        ApplyMigrationsAndCleanup(app);      // yeni binayla çalışacak (updateApplied=false ise zaten flag yoktur ve no-op)
+        CleanupOldVersions();                // opsiyonel: eski “_v*.dll”leri sil
+    });
+}
 
 // -----------------------------
 // Middleware Pipeline

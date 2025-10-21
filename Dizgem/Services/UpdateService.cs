@@ -92,6 +92,11 @@ namespace Dizgem.Services
             // Güncelleme bayrağını oluştur
             var flagPath = Path.Combine(_env.ContentRootPath, "update.flag");
             await File.WriteAllTextAsync(flagPath, "Update pending");
+
+            //string versionFind = downloadUrl.Replace($"https://github.com/{GitHubOwner}/{GitHubRepo}/releases/download/", "").Split('/')[0];
+
+            //var migrationPath = Path.Combine(_env.ContentRootPath, "update.db.flag");
+            //await File.WriteAllTextAsync(flagPath, versionFind);
         }
 
 

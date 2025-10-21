@@ -42,7 +42,7 @@ namespace Dizgem.Areas.Dizgem.Controllers
 
             // Uygulamayı nazikçe kapat. Hosting ortamı (IIS vb.) yeniden başlatacaktır.
             _appLifetime.StopApplication();
-
+            
             return Ok(new { message = "Güncelleme indirildi. Uygulama yeniden başlatılıyor..." });
         }
     }

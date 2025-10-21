@@ -64,6 +64,7 @@ namespace Dizgem.Areas.Dizgem.Controllers
             ModelState.Remove("Post.ContentJson");
             ModelState.Remove("Post.Excerpt");
             ModelState.Remove("TagsString");
+            ModelState.Remove("Page.Comments");
 
             if (ModelState.IsValid)
             {
