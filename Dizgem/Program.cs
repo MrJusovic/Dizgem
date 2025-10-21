@@ -104,9 +104,24 @@ bool ApplyUpdateIfAvailable(Microsoft.Extensions.Logging.ILogger logger)
     }
     finally
     {
-        // DİKKAT: _update ve flag burada silinmiyor.
-        // Sadece geçici backup’ı temizleyebiliriz:
-        try { if (Directory.Exists(backupPath)) Directory.Delete(backupPath, true); } catch { }
+        Log("Geçici dosyalar siliniyor...");
+        try
+        {
+            var updateFolder = Path.Combine(rootPath, "_update");
+            if (Directory.Exists(updateFolder))
+            {
+                Directory.Delete(updateFolder, recursive: true);
+            }
+            if (Directory.Exists(backupPath))
+            {
+                Directory.Delete(backupPath, recursive: true);
+            }
+        }
+        catch (Exception cleanupEx)
+        {
+            Log($"Temizlik sırasında hata: {cleanupEx.Message}");
+        }
+        Log("Temizlik tamamlandı.");
     }
 }
 
@@ -151,11 +166,10 @@ void ApplyMigrationsAndCleanup(IHost app)
         {
             // İşlem başarılı da olsa başarısız da olsa güncelleme dosyalarını ve bayrağını temizle.
             logger.LogInformation("Güncelleme dosyaları temizleniyor.");
-            if (Directory.Exists(Path.Combine(rootPath, "_update")))
+            if (File.Exists(flagPath))
             {
-                Directory.Delete(Path.Combine(rootPath, "_update"), true);
+                File.Delete(flagPath);
             }
-            File.Delete(flagPath);
         }
     }
 }
@@ -218,8 +232,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
         ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-        options.KnownProxies.Clear();
-        options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.KnownNetworks.Clear();
 });
 
 // === YENİ EKLENECEK HTML SANITIZER AYARI ===
@@ -336,16 +350,16 @@ builder.Services.AddSingleton<IHtmlSanitizer>(provider =>
     sanitizer.AllowedAttributes.Add("src");
     sanitizer.AllowedAttributes.Add("alt");
     sanitizer.AllowedAttributes.Add("class"); // Bootstrap sınıfları için
-    sanitizer.AllowedAttributes.Add("style"); 
-    sanitizer.AllowedAttributes.Add("rtl"); 
-    sanitizer.AllowedAttributes.Add("type"); 
-    sanitizer.AllowedAttributes.Add("value"); 
-    sanitizer.AllowedAttributes.Add("name"); 
-    sanitizer.AllowedAttributes.Add("id"); 
-    sanitizer.AllowedAttributes.Add("media"); 
-    sanitizer.AllowedAttributes.Add("data-gjs-type"); 
-    sanitizer.AllowedAttributes.Add("gjs-highlightable"); 
-    sanitizer.AllowedAttributes.Add("data-masonry"); 
+    sanitizer.AllowedAttributes.Add("style");
+    sanitizer.AllowedAttributes.Add("rtl");
+    sanitizer.AllowedAttributes.Add("type");
+    sanitizer.AllowedAttributes.Add("value");
+    sanitizer.AllowedAttributes.Add("name");
+    sanitizer.AllowedAttributes.Add("id");
+    sanitizer.AllowedAttributes.Add("media");
+    sanitizer.AllowedAttributes.Add("data-gjs-type");
+    sanitizer.AllowedAttributes.Add("gjs-highlightable");
+    sanitizer.AllowedAttributes.Add("data-masonry");
 
 
     // Yapılandırılmış sanitizer nesnesini döndürüyoruz.
@@ -457,6 +471,7 @@ builder.Services.AddScoped<IFormProcessingService, FormProcessingService>();
 builder.Services.AddScoped<IThemeEditorService, ThemeEditorService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IGitEventsService, GitEventsService>();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 
 var app = builder.Build();

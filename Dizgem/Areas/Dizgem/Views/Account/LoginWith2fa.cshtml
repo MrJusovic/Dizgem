@@ -1,127 +1,53 @@
 ﻿@model LoginWith2faViewModel
 @{
-    Layout = null;
+    Layout = "_GlobalLayout";
+    ViewBag.Title = "2FA Protect";
 }
 
-<!DOCTYPE html>
-
-<html data-bs-theme="light" data-color-theme="Blue_Theme" data-layout="vertical" dir="ltr" lang="tr">
-<head>
-    <meta charset="utf-8" />
-    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Dizgem Login 2FA</title>
-    <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" type="text/css" media="all" />
-    <link rel="stylesheet" href="~/css/site.css" type="text/css" media="all" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="~/css/icons/font-awesome/css/all.css?v=6.5.2" type="text/css" media="all" />
-</head>
-<body>
-    <div class="preloader">
-        <svg class="tea lds-ripple" width="37" height="48" viewbox="0 0 37 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M27.0819 17H3.02508C1.91076 17 1.01376 17.9059 1.0485 19.0197C1.15761 22.5177 1.49703 29.7374 2.5 34C4.07125 40.6778 7.18553 44.8868 8.44856 46.3845C8.79051 46.79 9.29799 47 9.82843 47H20.0218C20.639 47 21.2193 46.7159 21.5659 46.2052C22.6765 44.5687 25.2312 40.4282 27.5 34C28.9757 29.8188 29.084 22.4043 29.0441 18.9156C29.0319 17.8436 28.1539 17 27.0819 17Z" stroke="#2962FF" stroke-width="2"></path>
-            <path d="M29 23.5C29 23.5 34.5 20.5 35.5 25.4999C36.0986 28.4926 34.2033 31.5383 32 32.8713C29.4555 34.4108 28 34 28 34" stroke="#2962FF" stroke-width="2"></path>
-            <path id="teabag" fill="#2962FF" fill-rule="evenodd" clip-rule="evenodd" d="M16 25V17H14V25H12C10.3431 25 9 26.3431 9 28V34C9 35.6569 10.3431 37 12 37H18C19.6569 37 21 35.6569 21 34V28C21 26.3431 19.6569 25 18 25H16ZM11 28C11 27.4477 11.4477 27 12 27H18C18.5523 27 19 27.4477 19 28V34C19 34.5523 18.5523 35 18 35H12C11.4477 35 11 34.5523 11 34V28Z"></path>
-            <path id="steamL" d="M17 1C17 1 17 4.5 14 6.5C11 8.5 11 12 11 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#2962FF"></path>
-            <path id="steamR" d="M21 6C21 6 21 8.22727 19 9.5C17 10.7727 17 13 17 13" stroke="#2962FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-    </div>
-    <div class="auth-customizer-none" id="main-wrapper">
-        <div class="position-relative overflow-hidden radial-gradient min-vh-100 w-100">
-            <div class="position-relative z-index-5 min-vh-100">
-                <div class="row justify-content-center">
-                    <div class="col-xl-7 col-xxl-8">
-                        <a class="text-nowrap logo-img d-block px-4 py-9 w-100" href="index.html">
-                            <b class="logo-icon">
-                                <!--You can put here icon as well // <i class="wi wi-sunset"></i> //-->
-                                <!-- Dark Logo icon -->
-                                <img src="~/images/dizgem-logo.png" alt="Dizgem CRM" style="max-width: 60px;" />
-                            </b>
-                            
-                        </a>
-                        <div class="d-none d-xl-flex align-items-center justify-content-center h-n80">
-                            <img src="~/images/login-security.png" alt="Dizgem CRM" class="img-fluid" width="500" />
-                        </div>
-                        
+<div class="authentication-login auth-card-login min-vh-100 min-height-auto bg-white row justify-content-center align-items-center p-4 mx-3 mx-lg-auto mt-5 mt-sm-0">
+    <div class="d-flex align-items-center w-100 h-100 z-index-5">
+        <div class="card-body">
+            <div class="mb-5">
+                <h3 class="fw-bolder fs-7 mb-3">2FA Onayı</h3>
+                <p>
+                    Lütfen sizin için üretilen 6 haneli kodu girin
+                </p>
+                <h6 class="fw-bolder">******123456</h6>
+            </div>
+            <form asp-area="Dizgem" asp-action="LoginWith2fa" asp-controller="Account" method="post" asp-route-returnUrl="@ViewData["ReturnUrl"]">
+                <input type="hidden" asp-for="RememberMe" />
+                <input type="hidden" asp-for="TwoFactorCode" />
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="exampleInputEmail1">
+                        6 haneli güvenlik kodunuzu girin
+                    </label>
+                    <div id="otp-container" class="d-flex align-items-center gap-2 gap-sm-3">
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="0" />
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="1" />
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="2" />
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="3" />
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="4" />
+                        <input class="otp-input form-control" type="tel" maxlength="1" data-index="5" />
                     </div>
-                    <div class="col-xl-5 col-xxl-4 col-md-8 mt-5 mt-xl-0 bg-white">
-                        <div class="authentication-login auth-card-login min-vh-100 min-height-auto bg-white row justify-content-center align-items-center p-4 mx-3 mx-lg-auto mt-5 mt-sm-0">
-                            <div class="d-flex align-items-center w-100 h-100 z-index-5">
-                                <div class="card-body">
-                                    <div class="mb-5">
-                                        <h3 class="fw-bolder fs-7 mb-3">Two Step Verification</h3>
-                                        <p>
-                                            We sent a verification code to your mobile. Enter the code from the mobile in the field below.
-                                        </p>
-                                        <h6 class="fw-bolder">******1234</h6>
-                                    </div>
-                                    <form asp-area="Dizgem" asp-action="LoginWith2fa" asp-controller="Account" method="post" asp-route-returnUrl="@ViewData["ReturnUrl"]">
-                                        <input type="hidden" asp-for="RememberMe" />
-                                        <input type="hidden" asp-for="TwoFactorCode" />
-                                        <div class="mb-3">
-                                            <label class="form-label fw-semibold" for="exampleInputEmail1">
-                                                Type your 6 digits security
-                                                code
-                                            </label>
-                                            <div id="otp-container" class="d-flex align-items-center gap-2 gap-sm-3">
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="0" />
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="1" />
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="2" />
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="3" />
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="4" />
-                                                <input class="otp-input form-control" type="tel" maxlength="1" data-index="5" />
-                                            </div>
-                                            <div>
-                                                <span asp-validation-for="TwoFactorCode" class="text-danger"></span>
-                                            </div>
-                                            <div class="form-group mt-2">
-                                                <div class="checkbox">
-                                                    <label asp-for="RememberMachine">
-                                                        <input asp-for="RememberMachine" class="form-check-input primary" />
-                                                        @Html.DisplayNameFor(m => m.RememberMachine)
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary w-100 py-8 mb-4">Giriş Yap</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="obj-right">
-                            <img alt="img" src="adminpro/dist/assets/images/backgrounds/leaf-right.png" />
+                    <div>
+                        <span asp-validation-for="TwoFactorCode" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mt-2">
+                        <div class="checkbox">
+                            <label asp-for="RememberMachine">
+                                <input asp-for="RememberMachine" class="form-check-input primary" />
+                                @Html.DisplayNameFor(m => m.RememberMachine)
+                            </label>
                         </div>
                     </div>
                 </div>
-            </div>
+                <button type="submit" class="btn btn-primary w-100 py-8 mb-4">Giriş Yap</button>
+            </form>
         </div>
     </div>
-    <div class="dark-transparent sidebartoggler"></div>
-    <div class="dark-transparent sidebartoggler"></div>
-    <script src="~/lib/jquery/dist/jquery.js"></script>
-    <script src="~/lib/toastr/toastr.js"></script>
-    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
-    <script>
-        var userSettings = {
-            Layout: "vertical", // vertical | horizontal
-            SidebarType: "full", // full | mini-sidebar
-            BoxedLayout: true, // true | false
-            Direction: "ltr", // ltr | rtl
-            Theme: "light", // light | dark
-            ColorTheme: "Blue_Theme", // Blue_Theme | Aqua_Theme | Purple_Theme | Green_Theme | Cyan_Theme | Orange_Theme
-            cardBorder: false, // true | false
-        };
-    </script>
-    @*<script src="~/Content/js/app.min.js"></script>*@
-    <script src="~/lib/theme.min.js"></script>
+</div>
 
-    <partial name="_ValidationScriptsPartial" />
+@section scripts {
     <script>
         $(document).ready(function() {
             const $inputs = $('.otp-input');
@@ -187,6 +113,4 @@
             }
         });
     </script>
-
-</body>
-</html>
+}

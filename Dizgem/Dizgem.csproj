@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <VersionPrefix>1.7.0</VersionPrefix>
+    <VersionPrefix>1.8.0</VersionPrefix>
     <AssemblyName>$(MSBuildProjectName)_v$(VersionPrefix)</AssemblyName>
   </PropertyGroup>
 

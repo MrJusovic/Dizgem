@@ -1,9 +1,12 @@
 ﻿using Dizgem.Models;
+using Dizgem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages;
 using Serilog;
+using System.Text;
 
 namespace Dizgem.Areas.Dizgem.Controllers
 {
@@ -13,11 +16,13 @@ namespace Dizgem.Areas.Dizgem.Controllers
     {
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
+        private readonly IEmailSender _emailSender;
 
-        public AccountController(SignInManager<User> signInManager, UserManager<User> userManager)
+        public AccountController(SignInManager<User> signInManager, UserManager<User> userManager, IEmailSender emailSender)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _emailSender = emailSender;
         }
         [AllowAnonymous]
         public IActionResult Index()
@@ -285,6 +290,100 @@ namespace Dizgem.Areas.Dizgem.Controllers
             await _signInManager.RefreshSignInAsync(user);
 
             return Ok(new { statusMessage = "Profil başarıyla güncellendi." });
+        }
+
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+           return View();
+
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
+                {
+                    // Kullanıcı bulunamazsa veya e-postası onaylı değilse, yine de onay sayfasına yönlendir.
+                    // Bu, sistemde hangi e-postaların kayıtlı olduğunun dışarı sızmasını engeller.
+                    return RedirectToAction(nameof(ForgotPasswordConfirmation));
+                }
+
+                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+                var callbackUrl = Url.Action("ResetPassword", "Account", new { area = "Dizgem", code, email = user.Email }, protocol: Request.Scheme);
+
+                await _emailSender.SendEmailAsync(
+                    model.Email,
+                    "Dizgem Şifre Sıfırlama Talebi",
+                    $"Lütfen şifrenizi sıfırlamak için <a href='{callbackUrl}'>buraya tıklayın</a>.");
+
+                return RedirectToAction(nameof(ForgotPasswordConfirmation));
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string code = null, string email = null)
+        {
+            if (code == null || email == null)
+            {
+                return BadRequest("Şifre sıfırlama için bir kod ve e-posta sağlanmalıdır.");
+            }
+            var model = new ResetPasswordViewModel { Code = code, Email = email };
+            return View(model);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                // Kullanıcı bulunamazsa bile hata mesajı verme, başarıya yönlendir.
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
+            }
+
+            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Code));
+            var result = await _userManager.ResetPasswordAsync(user, code, model.Password);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("ResetPasswordConfirmation", "Account");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            // Bu, şifrenin başarıyla sıfırlandığını belirten ve giriş yapmaya yönlendiren bir view.
+            return View();
         }
     }
 }
