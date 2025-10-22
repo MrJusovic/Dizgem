@@ -3,6 +3,13 @@
 @{
     ViewData["Title"] = Model.Post?.Id == Guid.Empty ? "Yeni Yazı Oluştur" : "Yazıyı Düzenle";
 }
+@functions {
+    public string GetAntiXsrfRequestToken()
+    {
+        return Xsrf.GetAndStoreTokens(Context).RequestToken;
+    }
+}
+
 @section styles {
     <link href="~/lib/tom-select/tom-select.css" rel="stylesheet" type="text/css" media="all" />
     <style>
@@ -74,7 +81,45 @@
                     <input asp-for="Post.Slug" class="form-control" />
                     <span asp-validation-for="Post.Slug" class="text-danger"></span>
                 </div>
+                <!-- === AI YARDIMCISI BUTONLARI === -->
+                <div class="card mb-3 bg-light">
+                    <div class="card-body p-2 d-flex align-items-center flex-wrap gap-2">
+                        <small class="text-muted fw-bold me-2">AI Yardımcısı:</small>
 
+                        <!-- Yönerge İpucu Seçimi -->
+                        <select id="ai-prompt-hint" class="form-select form-select-sm w-auto me-1" title="Metin iyileştirme için bir stil seçin">
+                            <option value="">Genel İyileştirme</option>
+                            <option value="MakeFluent">Daha Akıcı Hale Getir</option>
+                            <option value="FixGrammar">Dilbilgisi/Yazımı Düzelt</option>
+                            <option value="MakeProfessional">Daha Profesyonel Yap</option>
+                            <option value="ShortenSimplify">Kısalt ve Basitleştir</option>
+                            <option value="MakeEngaging">Daha İlgi Çekici Yap</option>
+                            <option value="AdaptForBeginners">Yeni Başlayanlara Uygun Hale Getir</option>
+                            <option value="EnrichText">Metni Zenginleştir</option>
+                        </select>
+
+                        <button type="button" class="btn btn-outline-indigo btn-sm ai-action-button" data-action="SuggestTitles">
+                            <i class="fas fa-book me-1"></i> Başlık Öner
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm ai-action-button" data-action="ImproveText">
+                            <i class="fas fa-magic me-1"></i> Metni İyileştir
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm ai-action-button" data-action="GenerateSummary">
+                            <i class="fas fa-file-alt me-1"></i> Özet/SEO Oluştur
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm ai-action-button" data-action="GenerateCoverImage">
+                            <i class="fas fa-image me-1"></i> Kapak Fotoğrafı Oluştur
+                        </button>
+                        
+                    </div>
+                    <div class="align-items-center card-footer d-flex justify-content-center p-0" style="transition: all 0.5s linear;">
+                        <div id="ai-loading-indicator" style="display: none;" class="mb-2 me-2 ms-2 mt-2 spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Yükleniyor...</span>
+                        </div>
+                        <small id="ai-status-message" class="text-muted"></small>
+                    </div>
+                </div>
+                <!-- =============================== -->
                 <div class="form-group mb-3">
                     <label asp-for="Post.ContentJson" class="control-label">İçerik</label>
                     <div id="editorjs" style="border: 1px solid #ced4da; border-radius: .25rem; padding: 1rem;"></div>
@@ -192,6 +237,102 @@
     </div>
 
 </form>
+
+<!-- === AI MODAL PENCERELERİ === -->
+<!-- Başlık Önerileri Modalı -->
+<div class="modal fade" id="aiSuggestTitlesModal" tabindex="-1" aria-labelledby="aiSuggestTitlesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiSuggestTitlesModalLabel">AI Başlık Önerileri</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <p>Oluşturulan başlık önerilerinden birini seçin:</p>
+                <ul class="list-group" id="title-suggestions-list">
+                    <!-- Öneriler buraya yüklenecek -->
+                    <li class="list-group-item text-center"><span class="spinner-border spinner-border-sm"></span> Yükleniyor...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metin İyileştirme Modalı -->
+<div class="modal fade" id="aiImproveTextModal" tabindex="-1" aria-labelledby="aiImproveTextModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiImproveTextModalLabel">AI Metin İyileştirme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <p>AI tarafından iyileştirilen metni kontrol edin:</p>
+                <div id="improved-text-preview" style="max-height: 400px; overflow-y: auto;" class="border border-light-subtle rounded p-3">
+                    <!-- İyileştirilmiş metin buraya yüklenecek -->
+                    <div class="text-center"><span class="spinner-border spinner-border-sm"></span> Yükleniyor...</div>
+                </div>
+                <!-- Gizli alan, iyileştirilmiş metni tutmak için -->
+                <input type="hidden" id="improved-text-data">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-primary" id="apply-improved-text">Değişiklikleri Uygula</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Özet/SEO Oluşturma Modalı -->
+<div class="modal fade" id="aiGenerateSummaryModal" tabindex="-1" aria-labelledby="aiGenerateSummaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiGenerateSummaryModalLabel">AI Özet ve SEO Açıklaması</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="generated-summary" class="form-label">Oluşturulan Özet (Excerpt):</label>
+                    <textarea id="generated-summary" class="form-control" rows="3" readonly></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="generated-description" class="form-label">Oluşturulan SEO Açıklaması:</label>
+                    <textarea id="generated-description" class="form-control" rows="2" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-primary" id="apply-summary-seo">Uygula</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kapak Fotoğrafı Oluşturma Modalı -->
+<div class="modal fade" id="aiGenerateImageModal" tabindex="-1" aria-labelledby="aiGenerateImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiGenerateImageModalLabel">AI Kapak Fotoğrafı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>AI tarafından oluşturulan kapak fotoğrafı:</p>
+                <div id="generated-image-preview" class="mb-3">
+                    <span class="spinner-border text-primary"></span> Yükleniyor...
+                </div>
+                <!-- Gizli alan, resim URL'ini tutmak için -->
+                <input type="hidden" id="generated-image-url-data">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-primary" id="apply-generated-image">Fotoğrafı Kullan</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =========================== -->
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
@@ -219,15 +360,29 @@
     <script src="https://cdn.jsdelivr.net/npm/@@editorjs/inline-code@@latest"></script><!-- Inline Code -->
     <!-- Load Editor.js's Core -->
     <script src="https://cdn.jsdelivr.net/npm/@@editorjs/editorjs@@latest"></script>
+    <script>
 
+        function generateSlug(text) {
+            return text.toString().toLowerCase()
+                .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+                .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+                .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
+                .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+        }
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
 
+             // === AI YARDIMCISI ve EDITOR.JS ===
+             let editorInstance = null; // Editor.js instance'ını tutmak için global değişken
+             // Bootstrap Modal instance'larını saklamak için
+             let aiModals = {};
+
             @{
-                    // C# tarafında, JavaScript'e gönderilecek veriyi güvenli bir şekilde hazırlıyoruz.
-                    // Eğer ContentJson boş veya null ise, Editor.js'e boş bir obje '{}' gönderiyoruz.
-                    // Dolu ise, mevcut JSON verisini olduğu gibi kullanıyoruz.
-                    var initialData = string.IsNullOrWhiteSpace(Model?.Post?.ContentJson) ? "{}" : Model?.Post?.ContentJson;
+                        // C# tarafında, JavaScript'e gönderilecek veriyi güvenli bir şekilde hazırlıyoruz.
+                        // Eğer ContentJson boş veya null ise, Editor.js'e boş bir obje '{}' gönderiyoruz.
+                        // Dolu ise, mevcut JSON verisini olduğu gibi kullanıyoruz.
+                        var initialData = string.IsNullOrWhiteSpace(Model?.Post?.ContentJson) ? "{}" : Model?.Post?.ContentJson;
             }
 
             // Editörümüzü başlatıyoruz
@@ -320,8 +475,19 @@
                 // Veritabanından gelen mevcut veriyi editöre yükleme
                 data: @Html.Raw(initialData),
                 onReady: () => {
-                  new Undo({ editor });
-                  new DragDrop(editor);
+                    new Undo({ editor });
+                    new DragDrop(editor);
+
+                     // === ÖNEMLİ: editorInstance'ı burada ata ===
+                    editorInstance = editor;
+                    console.log("EditorJS instance assigned.");
+                    // Modal instance'larını oluştur
+                     aiModals.suggestTitles = new bootstrap.Modal(document.getElementById('aiSuggestTitlesModal'));
+                     aiModals.improveText = new bootstrap.Modal(document.getElementById('aiImproveTextModal'));
+                     aiModals.generateSummary = new bootstrap.Modal(document.getElementById('aiGenerateSummaryModal'));
+                     aiModals.generateImage = new bootstrap.Modal(document.getElementById('aiGenerateImageModal'));
+                    // AI Buton olay dinleyicisini editor hazır olduktan SONRA ata
+                    attachAiButtonListener();
                 }
             });
 
@@ -391,6 +557,172 @@
                     })
                 },
             })
+
+            // === AI YARDIMCISI İŞLEMLERİ ===
+             function attachAiButtonListener() {
+                $('.ai-action-button').on('click', function() {
+                    if (!editorInstance) { /* ... Hata kontrolü ... */ return; }
+
+                    const action = $(this).data('action');
+                    const loadingIndicator = $('#ai-loading-indicator');
+                    const statusMessage = $('#ai-status-message');
+                    const allAiButtons = $('.ai-action-button');
+
+                    statusMessage.text('AI işliyor...'); loadingIndicator.show(); allAiButtons.prop('disabled', true);
+
+                    let textToSend = ''; let promiseForText;
+
+                    promiseForText = editorInstance.save().then(outputData => {
+                        let plainText = '';
+                        if (outputData && outputData.blocks) {
+                            plainText = outputData.blocks.map(block => {
+                                switch (block.type) {
+                                    case 'paragraph': case 'header': return block.data.text || '';
+                                    case 'list': return (block.data.items || []).map(item => `* ${typeof item === 'object' ? (item.content || '') : item}`).join('\n');
+                                    case 'checklist': return (block.data.items || []).map(item => `- [${(item.meta && item.meta.checked) ? 'x' : ' '}] ${item.content || ''}`).join('\n');
+                                    case 'quote': return `> ${block.data.text || ''}\n> _${block.data.caption || ''}_`;
+                                    default: return '';
+                                }
+                            }).filter(text => text.trim()).join('\n\n');
+                        }
+                        return plainText.trim();
+                    });
+
+                    promiseForText.then(finalTextToSend => {
+
+                        if ((action === 'GenerateCoverImage' || action === 'SuggestTitles') && !finalTextToSend)
+                        {
+                            Swal.fire('Hata!', 'Lütfen Bu özelliği kullanmadan önce yazıyı oluşturun.', 'error');
+                            throw new Error('Lütfen Bu özelliği kullanmadan önce yazıyı oluşturun.');
+                            return;
+                        }
+
+                        if (!finalTextToSend) {
+                            Swal.fire('Hata!', 'İşlenecek metin bulunamadı.', 'error');
+                            throw new Error('İşlenecek metin bulunamadı.');
+                            return;
+                        }
+                        return fetch(`/api/AiAssistant/${action}`, { /* ... Fetch ayarları ... */
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': '@GetAntiXsrfRequestToken()'
+                            }, body: JSON.stringify({ Text: finalTextToSend, PromptHint: $('#ai-prompt-hint').val() })
+                        });
+                    })
+                    .then(response => response.ok ? response.json() : response.json().then(err => { throw new Error(err.errorMessage || 'API Hatası'); }))
+                    .then(result => {
+                         if (result.success) {
+                            statusMessage.text('AI yanıtı alındı.');
+                            switch(action) {
+                                case 'ImproveText':
+                                   // --- DÜZELTİLMİŞ BÖLÜM ---
+                                    if (result.generatedText) {
+                                        const cleanText = result.generatedText.replace(/\n/g, '<br>'); // Satır sonlarını <br> yap
+                                        $('#improved-text-preview').html(cleanText); // Metni modala yükle
+                                        $('#improved-text-data').val(result.generatedText); // Orijinal metni gizli alana kaydet
+                                        aiModals.improveText.show(); // Modalı göster
+                                    } else {
+                                        statusMessage.text('Hata: AI metin üretmedi.');
+                                    }
+                                    break;
+                                case 'SuggestTitles':
+                                    const suggestionsList = $('#title-suggestions-list'); suggestionsList.empty();
+                                    if (result.suggestions && result.suggestions.length > 0) {
+                                        result.suggestions.forEach(title => suggestionsList.append(`<li class="list-group-item list-group-item-action">${title}</li>`));
+                                        aiModals.suggestTitles.show();
+                                    } else { statusMessage.text('Başlık önerisi bulunamadı.'); }
+                                    break;
+                                case 'GenerateSummary':
+                                     $('#generated-summary').val(result.generatedSummary || ''); // Modaldaki alanları doldur
+                                     $('#generated-description').val(result.generatedDescription || '');
+                                     aiModals.generateSummary.show(); // Modalı göster
+                                    break;
+                                case 'GenerateCoverImage':
+                                     $('#generated-image-preview').html(`<img src="${result.generatedImageUrl}" class="img-fluid rounded" alt="AI Generated Image">`);
+                                     $('#generated-image-url-data').val(result.generatedImageUrl); // Gizli alana kaydet
+                                     aiModals.generateImage.show(); // Modalı göster
+                                    break;
+                            }
+                        } else { throw new Error(result.errorMessage || 'Bilinmeyen AI hatası.'); }
+                    })
+                    .catch(error => { statusMessage.text(`Hata: ${error.message}`); })
+                    .finally(() => {  allAiButtons.prop('disabled', false); setTimeout(function() { loadingIndicator.hide(); statusMessage.text(''); }, 5000); });
+                }); // promiseForText.then sonu
+             } // attachAiButtonListener sonu
+
+             // --- MODAL UYGULAMA BUTONLARI ---
+             $('#apply-improved-text').on('click', function() {
+                 const newText = $('#improved-text-data').val();
+                 if (newText && editorInstance) {
+                     const newBlocks = newText.split('\n\n').filter(p => p.trim()).map(p => ({ type: 'paragraph', data: { text: p } }));
+                     if (newBlocks.length > 0) {
+                         editorInstance.blocks.clear();
+                         editorInstance.blocks.render({ blocks: newBlocks }).then(() => {
+                             editorInstance.save().then(updatedData => $('#content-output').val(JSON.stringify(updatedData)));
+                         });
+                     }
+                 }
+                 aiModals.improveText.hide();
+             });
+
+            $('#title-suggestions-list').on('click', '.list-group-item', function() { // Dinamik olarak eklenen elemanlar için olay delegasyonu
+                var data = $(this).text();
+                 $('#Post_Title').val(data);
+                 $('#Post_SeoTitle').val(data);
+                 const slugInput = document.getElementById('Post_Slug');
+                 slugInput.value = generateSlug(data);
+                 aiModals.suggestTitles.hide();
+             });
+
+             $('#apply-summary-seo').on('click', function() {
+                 $('#Post_Excerpt').val($('#generated-summary').val());
+                 $('#Post_SeoDescription').val($('#generated-description').val());
+                 aiModals.generateSummary.hide();
+             });
+
+             $('#apply-generated-image').on('click', function() {
+                 const imageUrl = $('#generated-image-url-data').val();
+                 if (imageUrl) {
+                    const uploaderElement = document.getElementById('cover-photo-file-input');
+                    if (uploaderElement && window.showPreview) {
+                         window.showPreview(uploaderElement, imageUrl);
+                    } else { console.error("showPreview or uploader not found for cover photo."); }
+                 }
+                 aiModals.generateImage.hide();
+             });
+
+             function showPreview(uploaderElement, url) {
+                // Bu fonksiyonun tam implementasyonu _PostFormPhotoPartial.cshtml'de
+                // zaten mevcut olan mantığı içermelidir.
+                // Örnek:
+                 const previewImgId = uploaderElement.dataset.previewImgId;
+                const uploaderId = uploaderElement.dataset.uploaderId;
+                const previewContainerId = uploaderElement.dataset.previewContainerId;
+                const inputId = uploaderElement.dataset.inputId;
+
+                 const urlInput = document.getElementById(inputId);
+                const uploaderBox = document.getElementById(uploaderId);
+                const previewContainer = document.getElementById(previewContainerId);
+                const previewImg = document.getElementById(previewImgId);
+
+                if (urlInput && uploaderBox && previewContainer && previewImg) {
+                    if (url) {
+                        previewImg.src = url;
+                        urlInput.value = url;
+                        previewContainer.style.display = 'block';
+                        uploaderBox.style.display = 'none';
+                    } else { // URL boş ise (örneğin kaldır butonu)
+                         urlInput.value = '';
+                        previewImg.src = '';
+                        previewContainer.style.display = 'none';
+                        uploaderBox.style.display = 'block';
+                        // uploaderBox'ın içeriğini orijinal haline getirmek isteyebilirsiniz.
+                    }
+                } else {
+                     console.error("showPreview: Gerekli elementler bulunamadı.", {inputId, previewImgId, uploaderId, previewContainerId});
+                }
+             }
         });
     </script>
 
@@ -528,13 +860,7 @@
                 });
             }
 
-            function generateSlug(text) {
-                return text.toString().toLowerCase()
-                    .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
-                    .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
-                    .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
-                    .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
-            }
         });
     </script>
+
 }

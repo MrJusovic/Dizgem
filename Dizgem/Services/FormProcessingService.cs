@@ -77,7 +77,7 @@ namespace Dizgem.Services
                 var mailMessage = new MailMessage();
                 mailMessage.From = new MailAddress(settings.SmtpUser, settings.SiteTitle);
                 mailMessage.To.Add(handler.ActionTarget);
-                mailMessage.Subject = $"Yeni Form Mesajı: {handler.Name}";
+                mailMessage.Subject = $"Yeni Bildiriminiz Mevcut - {handler.Name}";
 
                 var body = new StringBuilder();
                 body.AppendLine($"<strong>{handler.Name}</strong> formundan yeni bir mesaj aldınız:<br/><hr/>");

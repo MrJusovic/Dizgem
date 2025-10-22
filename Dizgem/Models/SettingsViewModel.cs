@@ -53,5 +53,8 @@ namespace Dizgem.Models
 
         [Display(Name = "Tüm Sitede Yorumlara İzin Ver")]
         public bool EnableComments { get; set; } = true; // Varsayılan olarak yorumlar açık
+
+        [Display(Name = "Gemini API Key")]
+        public string GeminiAPIKey { get; set; } = ""; // Varsayılan olarak yorumlar açık
     }
 }
