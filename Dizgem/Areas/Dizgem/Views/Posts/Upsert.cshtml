@@ -71,11 +71,18 @@
 
         <div class="card shadow-sm">
             <div class="card-body">
-                <div class="form-group mb-3">
-                    <label asp-for="Post.Title" class="control-label">Başlık</label>
-                    <input asp-for="Post.Title" class="form-control" />
+                <div class="mb-3">
+                    <label asp-for="Post.Title" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="Post.Title" class="form-control" />
+                        <!-- Başlık Öner Butonu -->
+                        <button type="button" class="btn btn-outline-secondary ai-action-button" data-action="SuggestTitles" title="AI ile Başlık Önerileri Al">
+                            <i class="fas fa-lightbulb"></i>
+                        </button>
+                    </div>
                     <span asp-validation-for="Post.Title" class="text-danger"></span>
                 </div>
+
                 <div class="form-group mb-3">
                     <label asp-for="Post.Slug" class="control-label">URL (Slug)</label>
                     <input asp-for="Post.Slug" class="form-control" />
@@ -98,9 +105,6 @@
                             <option value="EnrichText">Metni Zenginleştir</option>
                         </select>
 
-                        <button type="button" class="btn btn-outline-indigo btn-sm ai-action-button" data-action="SuggestTitles">
-                            <i class="fas fa-book me-1"></i> Başlık Öner
-                        </button>
                         <button type="button" class="btn btn-outline-primary btn-sm ai-action-button" data-action="ImproveText">
                             <i class="fas fa-magic me-1"></i> Metni İyileştir
                         </button>

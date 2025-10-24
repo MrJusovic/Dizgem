@@ -114,6 +114,14 @@ bool ApplyUpdateIfAvailable(Microsoft.Extensions.Logging.ILogger logger)
             }
             if (Directory.Exists(backupPath))
             {
+
+                string uploadsPath = Path.Combine(backupPath, "wwwroot", "uploads");
+                if (Directory.Exists(uploadsPath))
+                {
+                    string rootUploadsPath = Path.Combine(rootPath, "wwwroot", "uploads");
+                    Directory.Move(uploadsPath, rootUploadsPath);
+                }
+
                 Directory.Delete(backupPath, recursive: true);
             }
         }

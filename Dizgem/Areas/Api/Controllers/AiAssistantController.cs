@@ -22,6 +22,17 @@ namespace Dizgem.Areas.Api.Controllers
             _settingService = settingsService;
         }
 
+        private readonly Dictionary<string, string> _promptHints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "MakeFluent", "Aşağıdaki metni dilbilgisi açısından düzelt ve daha akıcı hale getir. Anlamını koru." },
+            { "FixGrammar", "Aşağıdaki metindeki dilbilgisi ve yazım hatalarını düzelt." },
+            { "MakeProfessional", "Aşağıdaki metni daha profesyonel ve resmi bir tonda yeniden yaz." },
+            { "ShortenSimplify", "Aşağıdaki metnin cümlelerini kısalt, basitleştir ve daha kolay okunur hale getir." },
+            { "MakeEngaging", "Aşağıdaki metni daha ilgi çekici ve merak uyandırıcı hale getir." },
+            { "AdaptForBeginners", "Aşağıdaki metni, konuya yeni başlayan birinin anlayabileceği şekilde basitleştirerek yeniden yaz." },
+            { "EnrichText", "Aşağıdaki metni daha detaylı bilgi, örnekler veya benzetmeler ekleyerek zenginleştir. Ana fikri koru ama daha kapsamlı hale getir." }
+        };
+
         [HttpPost("ImproveText")]
         public async Task<IActionResult> ImproveText([FromBody] AiRequestViewModel model)
         {
@@ -30,7 +41,11 @@ namespace Dizgem.Areas.Api.Controllers
                 return BadRequest(new AiResponseViewModel { Success = false, ErrorMessage = "İşlenecek metin boş olamaz." });
             }
 
-            string systemPrompt = "Aşağıdaki metni dilbilgisi, akıcılık ve okunabilirlik açısından iyileştir. Anlamını değiştirme, sadece daha profesyonel ve ilgi çekici hale getir.";
+            string systemPrompt = "Aşağıdaki metni dilbilgisi, akıcılık ve okunabilirlik açısından iyileştir. Anlamını değiştirme."; // Varsayılan
+            if (!string.IsNullOrEmpty(model.PromptHint) && _promptHints.TryGetValue(model.PromptHint, out var specificPrompt))
+            {
+                systemPrompt = specificPrompt;
+            }
             string userQuery = model.Text;
 
             try
