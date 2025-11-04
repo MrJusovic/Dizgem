@@ -31,5 +31,9 @@ namespace Dizgem.Services
         Task<(bool Success, string Message)> CreateFolderAsync(string relativePath);
 
         Task<(bool Success, string Message)> RenameNodeAsync(string oldRelativePath, string newRelativePath);
+
+        Task<(bool Success, string Message)> DeleteNodeAsync(string relativePath);
+
+        Task<(bool Success, string Message)> UploadFileAsync(string relativeDirectoryPath, IFormFile file);
     }
 }

@@ -43,6 +43,10 @@
         #theme-tree-container .far {
             color: #aaa;
         }
+
+        .CodeMirror-hscrollbar, .CodeMirror-vscrollbar {
+           background: rgba(250, 250, 250, 0.2);
+        }
     </style>
 }
 
@@ -102,8 +106,11 @@
                         <div class="mb-2 d-grid gap-2 d-md-flex">
                             <button id="new-folder-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeni Klasör"><i class="fas fa-folder-plus"></i> Klasör</button>
                             <button id="new-file-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeni Dosya"><i class="fa-file-plus fad"></i> Dosya</button>
+                            <button id="upload-file-btn" class="btn btn-sm btn-outline-success w-100" title="Dosya Yükle" disabled><i class="fas fa-upload"></i></button>
                             <button id="rename-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeniden Adlandır" disabled><i class="fas fa-pencil-alt"></i></button>
+                            <button id="delete-btn" class="btn btn-sm btn-outline-danger w-100" title="Sil" disabled><i class="fas fa-trash-alt"></i></button>
                         </div>
+                        <input type="file" id="file-upload-input" style="display: none;" />
                         <hr />
                         <!-- /YENİ BUTONLAR -->
                         @{
@@ -163,6 +170,9 @@
             const beautifyBtn = document.getElementById('beautify-btn');
             const editingFileName = document.getElementById('editing-file-name');
             const renameBtn = document.getElementById('rename-btn'); // Rename butonu
+            const deleteBtn = document.getElementById('delete-btn');
+            const uploadBtn = document.getElementById('upload-file-btn');
+            const fileUploadInput = document.getElementById('file-upload-input');
 
             // CodeMirror'ı başlat
             editor = CodeMirror(editorContainer, {
@@ -206,7 +216,12 @@
                         }
                     }
 
-                    renameBtn.disabled = false; // Seçim yapıldığında rename butonunu aktif et
+                    const rootThemeName = '@Model.FirstOrDefault()?.Path';
+                    const isRootNode = (currentSelectedPath === rootThemeName);
+
+                    renameBtn.disabled = isRootNode; // Seçim yapıldığında rename butonunu aktif et
+                    deleteBtn.disabled = isRootNode; // Kök klasörse silme butonunu kapat
+                    uploadBtn.disabled = false; // Yüklenecek bir yer seçildiği sürece butonu aç
                 });
             });
 
@@ -433,6 +448,111 @@
                         });
                     }
                 });
+            });
+
+            deleteBtn.addEventListener('click', function() {
+                if (!currentSelectedPath) {
+                    Swal.fire('Hata', 'Lütfen silmek için bir dosya veya klasör seçin.', 'error');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Emin misiniz?',
+                    text: `'${currentSelectedPath}' silinecek. Bu işlem geri alınamaz!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Evet, sil!',
+                    cancelButtonText: 'Vazgeç'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/Dizgem/ThemeEditor/DeleteNode', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': '@Xsrf.GetAndStoreTokens(Context).RequestToken'
+                            },
+                            body: JSON.stringify({ path: currentSelectedPath })
+                        })
+                        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                        .then(({ status, body }) => {
+                            if (status === 200 && body.success) {
+                                Swal.fire('Başarılı!', body.message, 'success').then(() => {
+                                    location.reload(); // Ağacı yenilemek için sayfayı yeniden yükle
+                                });
+                            } else {
+                                throw new Error(body.message || 'Bir hata oluştu.');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Hata!', error.message, 'error');
+                        });
+                    }
+                });
+            });
+
+            uploadBtn.addEventListener('click', function() {
+                if (!currentSelectedPath) {
+                    Swal.fire('Hata', 'Lütfen dosyanın yükleneceği bir konum (klasör veya dosya) seçin.', 'error');
+                    return;
+                }
+                fileUploadInput.click(); // Gizli input'u tetikle
+            });
+
+            fileUploadInput.addEventListener('change', function() {
+                if (this.files.length === 0) return; // Kullanıcı dosya seçmekten vazgeçti
+                
+                const file = this.files[0];
+                let uploadPath = '';
+
+                if (currentSelectedNodeType === 'file') {
+                    // Eğer bir dosya seçiliyse, o dosyanın bulunduğu klasöre yükle
+                    uploadPath = currentSelectedPath.substring(0, currentSelectedPath.lastIndexOf('/'));
+                } else { // 'folder'
+                    // Eğer bir klasör seçiliyse, o klasörün içine yükle
+                    uploadPath = currentSelectedPath;
+                }
+
+                if (!uploadPath) {
+                    Swal.fire('Hata', 'Geçerli bir yükleme konumu belirlenemedi.', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('path', uploadPath);
+                formData.append('__RequestVerificationToken', '@Xsrf.GetAndStoreTokens(Context).RequestToken');
+
+                Swal.fire({
+                    title: 'Yükleniyor...',
+                    text: `'${file.name}' dosyası '${uploadPath}' konumuna yükleniyor.`,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('/Dizgem/ThemeEditor/UploadFile', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                .then(({ status, body }) => {
+                    if (status === 200 && body.success) {
+                        Swal.fire('Başarılı!', body.message, 'success').then(() => {
+                            location.reload(); 
+                        });
+                    } else {
+                        throw new Error(body.message || 'Bir hata oluştu.');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Hata!', error.message, 'error');
+                });
+
+                // Input'u sıfırla ki aynı dosyayı tekrar seçebilsin
+                this.value = null;
             });
 
         });

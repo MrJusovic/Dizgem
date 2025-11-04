@@ -1,0 +1,196 @@
+﻿@model MediaDetailViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+
+@{
+    ViewData["Title"] = "Medya Detayı";
+}
+
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
+            </h4>
+            <nav aria-label="breadcrumb" class="d-flex align-items-center">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Media">Medya Kütüphanesi</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<form asp-area="Dizgem" asp-controller="Media" asp-action="Update" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="row">
+        <!-- Sol Sütun: Görsel Önizleme ve Bilgiler -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>@Model.Title</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.FileType.StartsWith("image/"))
+                    {
+                        <img src="@Model.UrlFull" alt="@Model.AltText" class="img-fluid rounded" />
+                    }
+                    else
+                    {
+                        <div class="text-center p-5 bg-light">
+                            <i class="fas fa-file-alt" style="font-size: 5rem; color: #aaa;"></i>
+                            <h5 class="mt-3">@Model.FileName</h5>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    <div class="row col-auto">
+                        @if (Model.ImageSizes.Any())
+                        {
+                            @foreach (var size in Model.ImageSizes)
+                            {
+                                <div class="col">
+                                    <small class="d-block"><strong>@size.Key:</strong></small>
+                                    <img src="@size.Value" class="img-thumbnail" style="height: 100%; max-height: 70px; object-fit: cover; width: auto; margin: auto auto;" />
+                                </div>
+                            }
+
+                        }
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Sütun: Meta Verileri ve İşlemler -->
+        <div class="col-md-4">
+            <div class="card sticky-top">
+                <div class="card-header">
+                    Detaylar ve Ayarlar
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label"></label>
+                        <input asp-for="Title" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="AltText" class="form-label"></label>
+                        <input asp-for="AltText" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <hr />
+
+                    <h6>Dosya Bilgileri</h6>
+                    <small class="d-block"><strong>Dosya Adı:</strong> @Model.FileName</small>
+                    <small class="d-block"><strong>Türü:</strong> @Model.FileType</small>
+                    <small class="d-block"><strong>Boyutu:</strong> @((Model.FileSize / 1024.0).ToString("F2")) KB</small>
+                    <small class="d-block"><strong>Yüklenme:</strong> @Model.UploadedAt.ToString("dd MMMM yyyy")</small>
+                    <small class="d-block"><strong>Yükleyen:</strong> @Model.UploaderName</small>
+
+                    <div class="mb-3 mt-2">
+                        <label class="form-label">Dosya URL'si:</label>
+                        <input type="text" class="form-control" value="@Model.UrlFull" readonly />
+                    </div>
+
+                    @if (Model.ImageSizes.Any())
+                    {
+                        <h6>Oluşturulan Boyutlar</h6>
+                        <dl>
+                            @foreach (var size in Model.ImageSizes)
+                            {
+                                <dd><small class="d-block"><strong>@size.Key:</strong> @size.Value</small></dd>
+                            }
+                        </dl>
+                    }
+
+                    <hr />
+
+                    <div class="d-grid gap-2">
+                        <input asp-for="UrlFull" type="hidden" />
+                        <input asp-for="FileName" type="hidden" />
+                        <input asp-for="FileType" type="hidden" />
+                        <input asp-for="UploaderName" type="hidden" />
+                        <button type="submit" class="btn btn-primary">Meta Verilerini Kaydet</button>
+                        @if (Model.FileType.StartsWith("image/"))
+                        {
+                            <button type="button" id="regenerate-btn" class="btn btn-secondary">Görsel Boyutlarını Yeniden Oluştur</button>
+                        }
+                        <button type="button" id="delete-btn" class="btn btn-danger">Bu Dosyayı Kalıcı Olarak Sil</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var mediaId = '@Model.Id';
+            var token = '@Xsrf.GetAndStoreTokens(Context).RequestToken';
+
+            // Silme İşlemi
+            $('#delete-btn').on('click', function() {
+                Swal.fire({
+                    title: 'Emin misiniz?',
+                    text: "'@Html.Raw(Model.FileName)' dosyasını kalıcı olarak silmek üzeresiniz. Bu işlem geri alınamaz!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Evet, sil!',
+                    cancelButtonText: 'Vazgeç'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/Dizgem/Media/Delete',
+                            type: 'POST',
+                            data: { id: mediaId },
+                            headers: { 'RequestVerificationToken': token },
+                            success: function (result) {
+                                Swal.fire('Silindi!', result.message, 'success').then(() => {
+                                    window.location.href = '@Url.Action("Index")'; // Liste sayfasına yönlendir
+                                });
+                            },
+                            error: function(xhr) {
+                                var err = JSON.parse(xhr.responseText);
+                                Swal.fire('Hata!', err.message, 'error');
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Yeniden Oluşturma İşlemi
+            $('#regenerate-btn').on('click', function() {
+                var btn = $(this);
+                btn.prop('disabled', true).text('Oluşturuluyor...');
+
+                 $.ajax({
+                    url: '/Dizgem/Media/Regenerate',
+                    type: 'POST',
+                    data: { id: mediaId },
+                    headers: { 'RequestVerificationToken': token },
+                    success: function (result) {
+                        Swal.fire('Başarılı!', result.message, 'success').then(() => {
+                            location.reload(); // Sayfayı yenileyerek yeni boyutları gör
+                        });
+                    },
+                    error: function(xhr) {
+                        var err = JSON.parse(xhr.responseText);
+                        Swal.fire('Hata!', err.message, 'error');
+                        btn.prop('disabled', false).text('Görsel Boyutlarını Yeniden Oluştur');
+                    }
+                });
+            });
+        });
+    </script>
+}

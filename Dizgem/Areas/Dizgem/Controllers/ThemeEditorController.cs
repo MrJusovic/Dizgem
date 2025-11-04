@@ -111,6 +111,52 @@ namespace Dizgem.Areas.Dizgem.Controllers
             }
             return BadRequest(new { success = false, message });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteNode([FromBody] CreateNodeRequest model) // CreateNodeRequest (sadece path içerir) yeniden kullanılır
+        {
+            if (string.IsNullOrWhiteSpace(model.Path))
+            {
+                return BadRequest(new { success = false, message = "Geçersiz dosya yolu." });
+            }
+
+            // Güvenlik: Aktif temanın ana klasörünün silinmesini engelle
+            var activeTheme = await _themeService.GetActiveThemeNameAsync();
+            if (model.Path.Equals(activeTheme, System.StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { success = false, message = "Aktif temanın ana klasörü silinemez." });
+            }
+
+            var (success, message) = await _themeEditorService.DeleteNodeAsync(model.Path);
+            if (success)
+            {
+                return Ok(new { success = true, message });
+            }
+            return BadRequest(new { success = false, message });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadFile([FromForm] string path, [FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "Yüklenecek dosya seçilmedi." });
+            }
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return BadRequest(new { success = false, message = "Yükleme konumu belirtilmedi." });
+            }
+
+            var (success, message) = await _themeEditorService.UploadFileAsync(path, file);
+
+            if (success)
+            {
+                return Ok(new { success = true, message });
+            }
+            return BadRequest(new { success = false, message });
+        }
     }
 
     public class FileSaveRequest

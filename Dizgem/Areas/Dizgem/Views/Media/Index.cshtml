@@ -1,0 +1,174 @@
+﻿@model MediaListViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+
+@{
+    ViewData["Title"] = "Medya Kütüphanesi";
+}
+
+<style>
+    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+    .media-card { border: 1px solid #ddd; border-radius: 5px; overflow: hidden; background: #f9f9f9; position: relative; }
+    .media-card .media-preview { height: 150px; display: flex; align-items: center; justify-content: center; background: #eee; }
+    .media-card .media-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .media-card .media-preview .file-icon { font-size: 3rem; color: #aaa; }
+    .media-card .media-info { padding: 0.5rem; text-align: center; }
+    .media-card .media-title { font-size: 0.8rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .media-card-link { text-decoration: none; color: inherit; }
+    .media-card-link:hover .media-card { border-color: #0d6efd; box-shadow: 0 0 5px rgba(13,110,253,.25); }
+    #upload-dropzone { border: 2px dashed #0d6efd; border-radius: 5px; padding: 2rem; text-align: center; background-color: rgba(248, 249,  250, .1); cursor: pointer; transition: background-color 0.2s; }
+    #upload-dropzone.dragover { background-color: #e9ecef; }
+</style>
+
+
+<div class=" shadow-none position-relative overflow-hidden mb-4 card">
+    <div class="card-body">
+        <div class="d-sm-flex justify-content-between align-items-center">
+            <h4 class=" mb-0">
+                <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
+            </h4>
+           
+        </div>
+    </div>
+</div>
+
+
+<!-- Dosya Yükleme Alanı -->
+<div class="card mb-4">
+    <div class="card-header">
+        Yeni Medya Yükle
+    </div>
+    <div class="card-body">
+        <form asp-action="Upload" method="post" enctype="multipart/form-data" id="upload-form">
+            @Html.AntiForgeryToken()
+            <div id="upload-dropzone">
+                <p class="mb-0">Dosyaları buraya sürükleyin veya seçmek için tıklayın</p>
+                <small class="text-muted">(Çoklu dosya yükleyebilirsiniz)</small>
+            </div>
+            <input type="file" id="file-input" name="files" multiple class="d-none" />
+            <div id="file-list" class="mt-2"></div>
+            <button type="submit" id="upload-btn" class="btn btn-primary mt-2" style="display: none;">Seçilenleri Yükle</button>
+        </form>
+    </div>
+</div>
+
+<!-- Filtreleme ve Arama -->
+<div class="card mb-4">
+    <div class="card-body bg-light">
+        <form method="get" asp-action="Index" class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <input type="text" name="q" class="form-control" placeholder="Medyalarda ara..." value="@Model.SearchQuery">
+            </div>
+            <div class="col-md-4">
+                <select name="type" class="form-select">
+                    <option value="all" selected="@(Model.FileType == "all")">Tüm Türler</option>
+                    <option value="image" selected="@(Model.FileType == "image")">Görseller</option>
+                    <option value="application/pdf" selected="@(Model.FileType == "application/pdf")">PDF Belgeleri</option>
+                    <option value="application/vnd.openxmlformats" selected="@(Model.FileType == "application/vnd.openxmlformats")">Dokümanlar</option>
+                    <option value="text" selected="@(Model.FileType == "text")">Metin Dosyaları</option>
+                    <option value="application" selected="@(Model.FileType == "application")">Diğer Belgeler</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Filtrele</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Medya Listesi -->
+<div class="media-grid">
+    @foreach (var item in Model.MediaItems)
+    {
+        <a asp-action="Detail" asp-route-id="@item.Id" class="media-card-link" title="@item.Title">
+            <div class="media-card">
+                <div class="media-preview">
+                    @if (item.ThumbnailUrl.Contains("http") || item.ThumbnailUrl.StartsWith("/"))
+                    {
+                        <img src="@item.ThumbnailUrl" alt="@item.Title" />
+                    }
+                    else
+                    {
+                        <i class="fas @item.ThumbnailUrl file-icon"></i> <!-- FontAwesome ikonları için -->
+                    }
+                </div>
+                <div class="media-info">
+                    <span class="media-title" title="@item.FileName">@item.Title</span>
+                </div>
+            </div>
+        </a>
+    }
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Medya Sayfalama" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link" asp-action="Index" asp-route-p="@(Model.CurrentPage - 1)" asp-route-q="@Model.SearchQuery" asp-route-type="@Model.FileType">Önceki</a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-p="@i" asp-route-q="@Model.SearchQuery" asp-route-type="@Model.FileType">@i</a>
+                </li>
+            }
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link" asp-action="Index" asp-route-p="@(Model.CurrentPage + 1)" asp-route-q="@Model.SearchQuery" asp-route-type="@Model.FileType">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var dropzone = $('#upload-dropzone');
+            var fileInput = $('#file-input');
+            var uploadBtn = $('#upload-btn');
+            var fileList = $('#file-list');
+
+            dropzone.on('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.on('change', function() {
+                handleFiles(this.files);
+            });
+
+            dropzone.on('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.addClass('dragover');
+            });
+
+            dropzone.on('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.removeClass('dragover');
+            });
+
+            dropzone.on('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.removeClass('dragover');
+                fileInput.prop('files', e.originalEvent.dataTransfer.files); // Dosyaları gizli input'a ata
+                handleFiles(e.originalEvent.dataTransfer.files);
+            });
+
+            function handleFiles(files) {
+                fileList.empty();
+                if (files.length > 0) {
+                    var list = $('<ul class="list-group"></ul>');
+                    for (var i = 0; i < files.length; i++) {
+                        list.append(`<li class="list-group-item list-group-item-sm">${files[i].name} (${(files[i].size / 1024).toFixed(2)} KB)</li>`);
+                    }
+                    fileList.append(list);
+                    uploadBtn.show();
+                } else {
+                    uploadBtn.hide();
+                }
+            }
+        });
+    </script>
+}

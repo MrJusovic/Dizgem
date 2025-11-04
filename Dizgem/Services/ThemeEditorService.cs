@@ -115,22 +115,31 @@ namespace Dizgem.Services
         /// <summary>
         /// Göreceli yolu tam bir fiziksel yola dönüştürür ve güvenlik kontrolü yapar (Path Traversal).
         /// </summary>
-        private string ValidateAndResolvePath(string relativePath)
+        private string ValidateAndResolvePath(string relativePath, bool allowRootTheme = false)
         {
             if (string.IsNullOrWhiteSpace(relativePath))
             {
                 throw new ArgumentException("Yol boş olamaz.");
             }
 
-            // Göreceli yoldaki ../ gibi güvenliksiz karakterleri temizle
+            // .. ve : gibi geçersiz karakterleri temizle
             var cleanRelativePath = relativePath.Replace("..", "").Replace(":", "");
-
             var fullPath = Path.GetFullPath(Path.Combine(_themesRootPath, cleanRelativePath));
 
             // Path Traversal saldırılarını engelleme
             if (!fullPath.StartsWith(_themesRootPath, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("Geçersiz dosya yolu. Tema klasörü dışına erişim engellendi.");
+            }
+
+            // allowRootTheme false ise (varsayılan), temanın ana klasöründe işlem yapılmasını engelle
+            if (!allowRootTheme)
+            {
+                var relativePathParts = relativePath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                if (relativePathParts.Length <= 1)
+                {
+                    throw new InvalidOperationException("Aktif temanın ana klasörü üzerinde işlem yapılamaz.");
+                }
             }
 
             return fullPath;
@@ -209,6 +218,69 @@ namespace Dizgem.Services
             catch (Exception ex)
             {
                 return (false, $"İsim değiştirilirken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> DeleteNodeAsync(string relativePath)
+        {
+            await Task.CompletedTask; // Async uyumluluğu için
+            try
+            {
+                var fullPath = ValidateAndResolvePath(relativePath);
+
+                if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
+                {
+                    return (false, "Silinecek dosya veya klasör bulunamadı.");
+                }
+
+                if (File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                }
+                else
+                {
+                    // true parametresi, klasörün içindekilerle birlikte (recursive) silinmesini sağlar.
+                    Directory.Delete(fullPath, true);
+                }
+
+                return (true, $"'{Path.GetFileName(relativePath)}' başarıyla silindi.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Silme işlemi sırasında bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> UploadFileAsync(string relativeDirectoryPath, IFormFile file)
+        {
+            try
+            {
+                // Yüklenecek hedef klasörün yolunu doğrula (kök tema klasörüne yüklemeye izin ver)
+                var fullDirectoryPath = ValidateAndResolvePath(relativeDirectoryPath, allowRootTheme: true);
+                if (!Directory.Exists(fullDirectoryPath))
+                {
+                    return (false, "Dosyanın yükleneceği klasör bulunamadı.");
+                }
+
+                // Hedef dosya yolunu oluştur
+                var targetFilePath = Path.Combine(fullDirectoryPath, file.FileName);
+
+                if (File.Exists(targetFilePath))
+                {
+                    return (false, $"'{file.FileName}' isimli dosya bu konumda zaten mevcut.");
+                }
+
+                // Dosyayı diske kaydet
+                await using (var stream = new FileStream(targetFilePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                return (true, $"'{file.FileName}' dosyası başarıyla yüklendi.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Dosya yüklenirken bir hata oluştu: {ex.Message}");
             }
         }
     }

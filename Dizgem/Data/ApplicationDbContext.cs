@@ -36,6 +36,8 @@ namespace Dizgem.Data
         public DbSet<PostComment> PostComments { get; set; }
         public DbSet<PageComment> PageComments { get; set; }
 
+        public DbSet<Media> Media { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -172,6 +174,14 @@ namespace Dizgem.Data
                 .HasOne(pt => pt.Comment)
                 .WithMany(t => t.PageComments)
                 .HasForeignKey(pt => pt.CommentId);
+
+            // --- Medya İlişkisi (Opsiyonel: Kullanıcı silinirse medyaları ne olsun?) ---
+            builder.Entity<Media>()
+                .HasOne(m => m.Uploader)
+                .WithMany() // User sınıfında 'public ICollection<Media> MediaItems { get; set; }' yoksa bu şekilde bırakın
+                .HasForeignKey(m => m.UploaderUserId)
+                .OnDelete(DeleteBehavior.SetNull); // Yükleyen kullanıcı silinirse, medya kaydının UploaderUserId'sini NULL yap
+
         }
     }
 }

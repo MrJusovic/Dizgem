@@ -480,6 +480,7 @@ builder.Services.AddScoped<IThemeEditorService, ThemeEditorService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IGitEventsService, GitEventsService>();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IMediaService, MediaService>();
 
 
 var app = builder.Build();
