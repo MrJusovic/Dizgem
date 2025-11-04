@@ -1,18 +1,15 @@
 ﻿@model List<ThemeFileNodeViewModel>
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
 @{
     ViewData["Title"] = "Tema Düzenleyici";
 }
 
 @section Styles {
-    @* <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
- *@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css" type="text/css" media="all" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material-darker.min.css" type="text/css" media="all" />
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.css" type="text/css" media="all" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/matchesonscrollbar.css" type="text/css" media="all" />
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
     <style>
         .CodeMirror {
@@ -25,13 +22,15 @@
             color: inherit;
             display: block;
             padding: 0.25rem 0.5rem;
+            border-radius: 4px;
         }
 
             #theme-tree-container a:hover {
                 background-color: #f0f0f0;
+                color: #212121;
             }
 
-        #theme-tree-container .file-link.active {
+        #theme-tree-container .file-link.active, #theme-tree-container .toggle-folder.active {
             background-color: #0d6efd;
             color: white;
         }
@@ -48,7 +47,6 @@
 }
 
 @functions {
-    // TreeView'ı oluşturmak için özyinelemeli (recursive) yardımcı metot
     public void RenderTree(List<ThemeFileNodeViewModel> nodes)
     {
         if (nodes == null || !nodes.Any()) return;
@@ -59,10 +57,14 @@
                 <li>
                     @if (node.IsDirectory)
                     {
-                        <a href="#" class="toggle-folder @(node.IsOpen ? "open" : "")" data-bs-toggle="collapse" data-bs-target="#folder-@node.Path.Replace('\\', '-').Replace('/', '-').Replace(".", "-")">
+                        <a href="#" class="toggle-folder @(node.IsOpen ? "open" : "")"
+                           data-bs-toggle="collapse"
+                           data-bs-target="#folder-@node.Path.GetHashCode()"
+                           data-path="@node.Path">
+                            @* data-path eklendi *@
                             <i class="fas fa-folder @(node.IsOpen ? "fa-folder-open" : "")"></i> @node.Name
                         </a>
-                        <div id="folder-@node.Path.Replace('\\', '-').Replace('/', '-').Replace(".", "-")" class="collapse @(node.IsOpen ? "show" : "")">
+                        <div id="folder-@node.Path.GetHashCode()" class="collapse @(node.IsOpen ? "show" : "")">
                             @{
                                 RenderTree(node.Children);
                             }
@@ -86,13 +88,6 @@
             <h4 class=" mb-0">
                 <span class="lstick d-inline-block align-middle"></span> @ViewData["Title"]
             </h4>
-            @* <nav aria-label="breadcrumb" class="d-flex align-items-center">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Index" asp-controller="Forms">Form İşleyiciler</a></li>
-                    <li class="breadcrumb-item"><a asp-area="Dizgem" asp-action="Edit" asp-controller="Forms" asp-route-id="@Model.Id">@Model.Name</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Detay</li>
-                </ol>
-            </nav> *@
         </div>
     </div>
 </div>
@@ -100,11 +95,17 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow-sm">
-            <div class="card-header">
-            </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 col-12" id="theme-tree-container">
+                        <!-- YENİ BUTONLAR -->
+                        <div class="mb-2 d-grid gap-2 d-md-flex">
+                            <button id="new-folder-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeni Klasör"><i class="fas fa-folder-plus"></i> Klasör</button>
+                            <button id="new-file-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeni Dosya"><i class="fa-file-plus fad"></i> Dosya</button>
+                            <button id="rename-btn" class="btn btn-sm btn-outline-secondary w-100" title="Yeniden Adlandır" disabled><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <hr />
+                        <!-- /YENİ BUTONLAR -->
                         @{
                             RenderTree(Model);
                         }
@@ -132,26 +133,20 @@
 
 
 @section Scripts {
-   
 
-
+    <!-- Gerekli JS Kütüphaneleri -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/php/php.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/jsx/jsx.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/sql/sql.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/clike/clike.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/htmlmixed/htmlmixed.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/jump-to-line.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/match-highlighter.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
@@ -160,11 +155,14 @@
         document.addEventListener('DOMContentLoaded', function () {
             let editor;
             let currentFilePath = null;
+            let currentSelectedPath = null; // Seçili olan düğümün yolunu tutar
+            let currentSelectedNodeType = null; // 'file' veya 'folder'
             let currentMode = null;
             const editorContainer = document.getElementById('editor-container');
             const saveBtn = document.getElementById('save-btn');
             const beautifyBtn = document.getElementById('beautify-btn');
             const editingFileName = document.getElementById('editing-file-name');
+            const renameBtn = document.getElementById('rename-btn'); // Rename butonu
 
             // CodeMirror'ı başlat
             editor = CodeMirror(editorContainer, {
@@ -181,15 +179,42 @@
                 }
             });
 
+            // --- YENİ: Seçimi izlemek için ---
+            document.querySelectorAll('.file-link, .toggle-folder').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Tüm aktif sınıfları kaldır
+                    document.querySelectorAll('.file-link, .toggle-folder').forEach(l => l.classList.remove('active'));
+                    // Tıklanana ekle
+                    this.classList.add('active');
+
+                    currentSelectedPath = this.dataset.path;
+                    currentSelectedNodeType = this.classList.contains('file-link') ? 'file' : 'folder';
+
+                    var element = document.getElementById(this.attributes['data-bs-target']['value'].toString().replace('#', ''));
+
+                    if(element.classList.contains('collapsing'))
+                    {
+                        if(this.children[0].classList.contains('fa-folder-open'))
+                        {
+                            this.children[0].classList.remove('fa-folder-open');
+                            this.children[0].classList.add('fa-folder');
+                        }
+                        else
+                        {
+                            this.children[0].classList.add('fa-folder-open');
+                            this.children[0].classList.remove('fa-folder');
+                        }
+                    }
+
+                    renameBtn.disabled = false; // Seçim yapıldığında rename butonunu aktif et
+                });
+            });
+
+
             // Dosya linklerine tıklama olayı
             document.querySelectorAll('.file-link').forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
-
-                    // Aktif stili ayarla
-                    document.querySelectorAll('.file-link').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-
                     currentFilePath = this.dataset.path;
                     editingFileName.textContent = currentFilePath;
 
@@ -239,7 +264,6 @@
                                 beautifyBtn.disabled = currentMode === 'text';
 
                             } else {
-                                // alert('Hata: ' + data.message);
                                 Swal.fire('Hata!', 'Hata: ' + data.message, 'error');
                             }
                         });
@@ -265,8 +289,6 @@
                 .then(response => response.json().then(data => ({ status: response.status, body: data })))
                 .then(({ status, body }) => {
                     if (status === 200 && body.success) {
-                        // Başarı bildirimi (örneğin SweetAlert ile)
-                        // alert(body.message);
                         Swal.fire('OK', body.message, 'success');
                     } else {
                         throw new Error(body.message || 'Bir hata oluştu.');
@@ -292,12 +314,127 @@
                     beautifiedContent = html_beautify(content);
                 } else if (currentMode === 'css') {
                     beautifiedContent = css_beautify(content);
-                } else if (currentMode === 'javascript' || currentMode === 'json') { // JSON desteği eklendi
+                } else if (currentMode === 'javascript' || currentMode === 'json') {
                     beautifiedContent = js_beautify(content, { indent_size: 2, space_in_empty_paren: true });
                 }
 
                 editor.setValue(beautifiedContent);
             });
+
+            // --- YENİ DOSYA/KLASÖR OLUŞTURMA ---
+
+            document.getElementById('new-file-btn').addEventListener('click', () => createNewNode('file'));
+            document.getElementById('new-folder-btn').addEventListener('click', () => createNewNode('folder'));
+
+            function createNewNode(type) {
+                let basePath = '';
+                if (currentSelectedPath) {
+                    // Eğer seçili olan bir dosyaysa, o dosyanın bulunduğu klasörü baz al
+                    // Eğer seçili olan bir klasörse, doğrudan o klasörü baz al
+                    basePath = (currentSelectedNodeType === 'file') ? currentSelectedPath.substring(0, currentSelectedPath.lastIndexOf('/')) : currentSelectedPath;
+                } else {
+                    // Hiçbir şey seçili değilse, tema kök dizinini baz al
+                    basePath = '@Model.FirstOrDefault()?.Path';
+                    if (!basePath) {
+                         Swal.fire('Hata', 'Lütfen önce bir dosya veya klasör seçin.', 'error');
+                         return;
+                    }
+                }
+
+                Swal.fire({
+                    title: type === 'file' ? 'Yeni Dosya Adı' : 'Yeni Klasör Adı',
+                    input: 'text',
+                    inputPlaceholder: type === 'file' ? 'yeni-dosya.cshtml' : 'yeni-klasor',
+                    showCancelButton: true,
+                    confirmButtonText: 'Oluştur',
+                    cancelButtonText: 'Vazgeç',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Bir isim girmelisiniz!'
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        const newName = result.value;
+                        const newPath = basePath + '/' + newName;
+                        const url = type === 'file' ? '/Dizgem/ThemeEditor/CreateFile' : '/Dizgem/ThemeEditor/CreateFolder';
+
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': '@Xsrf.GetAndStoreTokens(Context).RequestToken'
+                            },
+                            body: JSON.stringify({ path: newPath })
+                        })
+                        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                        .then(({ status, body }) => {
+                            if (status === 200 && body.success) {
+                                Swal.fire('Başarılı!', body.message, 'success').then(() => {
+                                    location.reload(); // Ağacı yenilemek için sayfayı yeniden yükle
+                                });
+                            } else {
+                                throw new Error(body.message || 'Bir hata oluştu.');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Hata!', error.message, 'error');
+                        });
+                    }
+                });
+            }
+
+            // --- YENİ YENİDEN ADLANDIRMA ---
+            renameBtn.addEventListener('click', function() {
+                if (!currentSelectedPath) {
+                    Swal.fire('Hata', 'Lütfen yeniden adlandırmak için bir dosya veya klasör seçin.', 'error');
+                    return;
+                }
+
+                const oldName = currentSelectedPath.substring(currentSelectedPath.lastIndexOf('/') + 1);
+
+                Swal.fire({
+                    title: 'Yeniden Adlandır',
+                    input: 'text',
+                    inputValue: oldName,
+                    showCancelButton: true,
+                    confirmButtonText: 'Kaydet',
+                    cancelButtonText: 'Vazgeç',
+                    inputValidator: (value) => {
+                        if (!value) return 'Bir isim girmelisiniz!';
+                        if (value === oldName) return 'Yeni isim eskisiyle aynı olamaz!';
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        const newName = result.value;
+                        const basePath = currentSelectedPath.substring(0, currentSelectedPath.lastIndexOf('/'));
+                        const newPath = basePath + '/' + newName;
+
+                        fetch('/Dizgem/ThemeEditor/RenameNode', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': '@Xsrf.GetAndStoreTokens(Context).RequestToken'
+                            },
+                            body: JSON.stringify({ oldPath: currentSelectedPath, newPath: newPath })
+                        })
+                        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                        .then(({ status, body }) => {
+                            if (status === 200 && body.success) {
+                                Swal.fire('Başarılı!', body.message, 'success').then(() => {
+                                    location.reload(); // Ağacı yenilemek için sayfayı yeniden yükle
+                                });
+                            } else {
+                                throw new Error(body.message || 'Bir hata oluştu.');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire('Hata!', error.message, 'error');
+                        });
+                    }
+                });
+            });
+
         });
     </script>
 }

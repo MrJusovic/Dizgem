@@ -101,7 +101,7 @@
                     <article class="card mb-4">
                         <header class="card-header">
                             <div class="card-meta">
-                                <a asp-route="PostDetail" asp-route-slug="@post.Slug"><time class="timeago" datetime="2021-09-26 20:00" timeago-id="1">3 years ago</time></a> in <a href="page-category.html">Journey</a>
+                                @post.PrimaryCategoryName
                             </div>
                             <a asp-route="PostDetail" asp-route-slug="@post.Slug">
                                 <h4 class="card-title">@post.Title</h4>

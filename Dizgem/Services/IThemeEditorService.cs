@@ -25,5 +25,11 @@ namespace Dizgem.Services
         /// <param name="content">Dosyaya yazılacak yeni içerik.</param>
         /// <returns>İşlemin başarı durumunu ve bir mesajı içeren bir Tuple.</returns>
         Task<(bool Success, string Message)> SaveFileContentAsync(string relativePath, string content);
+
+
+        Task<(bool Success, string Message)> CreateFileAsync(string relativePath);
+        Task<(bool Success, string Message)> CreateFolderAsync(string relativePath);
+
+        Task<(bool Success, string Message)> RenameNodeAsync(string oldRelativePath, string newRelativePath);
     }
 }

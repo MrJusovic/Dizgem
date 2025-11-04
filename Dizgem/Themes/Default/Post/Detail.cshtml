@@ -13,7 +13,7 @@
             <article class="card mb-4">
                 <header class="card-header text-center">
                     <div class="card-meta">
-                        <a href="#"><time class="timeago" datetime="2021-09-26 20:00" timeago-id="1">3 years ago</time></a> in <a href="page-category.html">Journey</a>
+                        @Model?.PostCategories?.First(x=>x.IsPrimary)?.Category?.Name
                     </div>
                     <a href="post-image.html">
                         <h1 class="card-title">@Model?.Title</h1>

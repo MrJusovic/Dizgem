@@ -110,5 +110,106 @@ namespace Dizgem.Services
             }
             return fullPath;
         }
+
+        // --- GÜVENLİK YARDIMCI METODU ---
+        /// <summary>
+        /// Göreceli yolu tam bir fiziksel yola dönüştürür ve güvenlik kontrolü yapar (Path Traversal).
+        /// </summary>
+        private string ValidateAndResolvePath(string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                throw new ArgumentException("Yol boş olamaz.");
+            }
+
+            // Göreceli yoldaki ../ gibi güvenliksiz karakterleri temizle
+            var cleanRelativePath = relativePath.Replace("..", "").Replace(":", "");
+
+            var fullPath = Path.GetFullPath(Path.Combine(_themesRootPath, cleanRelativePath));
+
+            // Path Traversal saldırılarını engelleme
+            if (!fullPath.StartsWith(_themesRootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Geçersiz dosya yolu. Tema klasörü dışına erişim engellendi.");
+            }
+
+            return fullPath;
+        }
+
+        // --- YENİ EKLENEN METOTLARIN İMPLEMENTASYONU ---
+
+        public async Task<(bool Success, string Message)> CreateFileAsync(string relativePath)
+        {
+            try
+            {
+                var fullPath = ValidateAndResolvePath(relativePath);
+                if (File.Exists(fullPath))
+                {
+                    return (false, "Bu isimde bir dosya zaten mevcut.");
+                }
+
+                await File.WriteAllTextAsync(fullPath, ""); // Boş bir dosya oluştur
+                return (true, $"'{Path.GetFileName(relativePath)}' dosyası başarıyla oluşturuldu.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Dosya oluşturulurken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> CreateFolderAsync(string relativePath)
+        {
+            try
+            {
+                var fullPath = ValidateAndResolvePath(relativePath);
+                if (Directory.Exists(fullPath))
+                {
+                    return (false, "Bu isimde bir klasör zaten mevcut.");
+                }
+
+                Directory.CreateDirectory(fullPath);
+                return (true, $"'{Path.GetFileName(relativePath)}' klasörü başarıyla oluşturuldu.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Klasör oluşturulurken bir hata oluştu: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> RenameNodeAsync(string oldRelativePath, string newRelativePath)
+        {
+            // Task.CompletedTask'i yalnızca async derleyicisini memnun etmek için kullanıyoruz,
+            // asıl I/O işlemleri senkron. Gerçek bir senaryoda bu işlemler de asenkron olabilir.
+            await Task.CompletedTask;
+            try
+            {
+                var fullOldPath = ValidateAndResolvePath(oldRelativePath);
+                var fullNewPath = ValidateAndResolvePath(newRelativePath);
+
+                if (!File.Exists(fullOldPath) && !Directory.Exists(fullOldPath))
+                {
+                    return (false, "İsim değiştirilecek dosya veya klasör bulunamadı.");
+                }
+                if (File.Exists(fullNewPath) || Directory.Exists(fullNewPath))
+                {
+                    return (false, "Bu isimde bir dosya veya klasör zaten mevcut.");
+                }
+
+                if (File.Exists(fullOldPath))
+                {
+                    File.Move(fullOldPath, fullNewPath);
+                }
+                else
+                {
+                    Directory.Move(fullOldPath, fullNewPath);
+                }
+
+                return (true, "İsim başarıyla değiştirildi.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"İsim değiştirilirken bir hata oluştu: {ex.Message}");
+            }
+        }
     }
 }

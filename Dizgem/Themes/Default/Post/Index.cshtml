@@ -61,7 +61,7 @@
                                 </a>
                             </header>
                             <a asp-route="PostDetail" asp-route-slug="@post.Slug">
-                                <img class="card-img" src="img/articles/22.jpg" alt="">
+                                <img class="card-img" src="@post.CoverPhotoUrl" alt="">
                             </a>
                             <div class="card-body">
                                 <p class="card-text">@post.Excerpt</p>

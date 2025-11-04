@@ -58,11 +58,75 @@ namespace Dizgem.Areas.Dizgem.Controllers
                 return BadRequest(new { success = false, message });
             }
         }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFile([FromBody] CreateNodeRequest model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Path))
+            {
+                return BadRequest(new { success = false, message = "Geçersiz dosya yolu." });
+            }
+
+            var (success, message) = await _themeEditorService.CreateFileAsync(model.Path);
+            if (success)
+            {
+                return Ok(new { success = true, message });
+            }
+            return BadRequest(new { success = false, message });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateFolder([FromBody] CreateNodeRequest model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Path))
+            {
+                return BadRequest(new { success = false, message = "Geçersiz klasör yolu." });
+            }
+
+            var (success, message) = await _themeEditorService.CreateFolderAsync(model.Path);
+            if (success)
+            {
+                return Ok(new { success = true, message });
+            }
+            return BadRequest(new { success = false, message });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RenameNode([FromBody] RenameNodeRequest model)
+        {
+            if (string.IsNullOrWhiteSpace(model.OldPath) || string.IsNullOrWhiteSpace(model.NewPath))
+            {
+                return BadRequest(new { success = false, message = "Eski ve yeni yollar boş olamaz." });
+            }
+            string newPath = model.NewPath.StartsWith("/") || model.NewPath.StartsWith("\\") ? model.NewPath.Substring(1) : model.NewPath;
+            string oldPath = model.OldPath.StartsWith("/") || model.OldPath.StartsWith("\\") ? model.OldPath.Substring(1) : model.OldPath;
+            var (success, message) = await _themeEditorService.RenameNodeAsync(oldPath, newPath);
+            if (success)
+            {
+                return Ok(new { success = true, message });
+            }
+            return BadRequest(new { success = false, message });
+        }
     }
 
     public class FileSaveRequest
     {
         public string Path { get; set; }
         public string Content { get; set; }
+    }
+
+    public class CreateNodeRequest
+    {
+        public string Path { get; set; }
+    }
+
+    public class RenameNodeRequest
+    {
+        public string OldPath { get; set; }
+        public string NewPath { get; set; }
     }
 }
