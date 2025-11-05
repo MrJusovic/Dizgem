@@ -18,6 +18,48 @@ using System.Text.Json;
 
 // UYGULAMA BAŞLANGIÇ NOKTASI
 
+/// <summary>
+/// Kaynak dizindeki tüm dosyaları ve alt dizinleri hedef dizine kopyalar.
+/// Hedefte zaten var olan dosyaların üzerine YAZMAZ.
+/// </summary>
+/// <param name="sourceDir">Yedek dizin (örn: _backup/Themes)</param>
+/// <param name="targetDir">Ana dizin (örn: root/Themes)</param>
+/// <param name="Log">Loglama fonksiyonu (delegate)</param>
+void MergeDirectory(string sourceDir, string targetDir, Action<string> Log)
+{
+    // Hedef dizini oluştur (varsa sorun olmaz)
+    Directory.CreateDirectory(targetDir);
+
+    // 1. Kaynaktaki dosyaları hedefe kopyala
+    // (Sadece hedefte olmayanları)
+    foreach (var file in Directory.GetFiles(sourceDir))
+    {
+        string targetFile = Path.Combine(targetDir, Path.GetFileName(file));
+        if (!File.Exists(targetFile))
+        {
+            try
+            {
+                File.Copy(file, targetFile);
+                Log($"[Merge] Geri kopyalandı: {Path.GetFileName(file)}");
+            }
+            catch (Exception ex)
+            {
+                Log($"[Merge ERR] {Path.GetFileName(file)} kopyalanamadı: {ex.Message}");
+            }
+        }
+    }
+
+    // 2. Alt dizinler için aynı işlemi tekrarla (recursive)
+    foreach (var directory in Directory.GetDirectories(sourceDir))
+    {
+        MergeDirectory(
+            Path.Combine(sourceDir, Path.GetFileName(directory)),
+            Path.Combine(targetDir, Path.GetFileName(directory)),
+            Log
+        );
+    }
+}
+
 // Güncelleme kontrolünü ve işlemini yapacak statik metot
 bool ApplyUpdateIfAvailable(Microsoft.Extensions.Logging.ILogger logger)
 {
@@ -114,14 +156,67 @@ bool ApplyUpdateIfAvailable(Microsoft.Extensions.Logging.ILogger logger)
             }
             if (Directory.Exists(backupPath))
             {
+                // --- YENİ GÜNCELLENMİŞ BLOK ---
 
-                string uploadsPath = Path.Combine(backupPath, "wwwroot", "uploads");
-                if (Directory.Exists(uploadsPath))
+                // 1. UPLOADS KLASÖRÜNÜ BİRLEŞTİREREK GERİ AL
+                // (Yedeklenen eski 'uploads' dosyalarını, yeni 'uploads' klasörüyle birleştir)
+                string backupUploads = Path.Combine(backupPath, "wwwroot", "uploads");
+                string rootUploads = Path.Combine(rootPath, "wwwroot", "uploads");
+
+                if (Directory.Exists(backupUploads))
                 {
-                    string rootUploadsPath = Path.Combine(rootPath, "wwwroot", "uploads");
-                    Directory.Move(uploadsPath, rootUploadsPath);
+                    Log("'uploads' klasörü yedekten geri birleştiriliyor...");
+                    MergeDirectory(backupUploads, rootUploads, Log);
                 }
 
+                
+                // 2. ÖZEL TEMALARI BİRLEŞTİREREK GERİ AL (Koşullu)
+                string backupThemes = Path.Combine(backupPath, "Themes");
+                string rootThemes = Path.Combine(rootPath, "Themes");
+                string updateSourceThemes = Path.Combine(updateSourcePath, "Themes");
+
+                if (Directory.Exists(backupThemes))
+                {
+                    Log("'Themes' klasörü analiz ediliyor...");
+
+                    // Güncelleme paketinde hangi temaların olduğunu öğren
+                    var updatedThemeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    if (Directory.Exists(updateSourceThemes))
+                    {
+                        // Sadece klasör adlarını al (örn: "DefaultTheme", "NewTheme")
+                        updatedThemeNames = Directory.GetDirectories(updateSourceThemes)
+                                                     .Select(Path.GetFileName)
+                                                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                        Log($"Güncelleme paketinde {updatedThemeNames.Count} tema bulundu: {string.Join(", ", updatedThemeNames)}");
+                    }
+
+                    // Şimdi yedeklenen temalara bak
+                    foreach (var backupThemeDir in Directory.GetDirectories(backupThemes))
+                    {
+                        string themeName = Path.GetFileName(backupThemeDir);
+
+                        // KURAL: Yedekteki tema, güncelleme paketinde YOKSA, o özel bir temadır.
+                        if (!updatedThemeNames.Contains(themeName))
+                        {
+                            // Bu özel bir temadır, geri yükle.
+                            Log($"[Merge Restore] '{themeName}' özel tema yedekten geri yükleniyor...");
+                            string targetThemeDir = Path.Combine(rootThemes, themeName);
+                            MergeDirectory(backupThemeDir, targetThemeDir, Log);
+                        }
+                        else
+                        {
+                            // Bu tema güncelleme paketinde vardı. 
+                            // Yedekten geri yüklenmeyecek, güncel versiyonu korunacak.
+                            Log($"[Merge Skip] '{themeName}' tema güncelleme paketinde bulunduğu için yedekten geri yüklenmedi.");
+                        }
+                    }
+                }
+
+                // --- GÜNCELLEME SONU ---
+
+                // Artık yedek klasörünü güvenle silebiliriz.
+                Log("Yedekleme klasörü (_backup) siliniyor.");
                 Directory.Delete(backupPath, recursive: true);
             }
         }
