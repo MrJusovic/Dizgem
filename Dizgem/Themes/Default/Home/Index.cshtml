@@ -108,10 +108,10 @@
                             </a>
                         </header>
                         @{
-                            if (!string.IsNullOrEmpty(post.CoverPhotoUrl))
+                            if (post.CoverPhotoMediaId != null || post.CoverPhotoMediaId != Guid.Empty)
                             {
                                 <a asp-route="PostDetail" asp-route-slug="@post.Slug">
-                                    <img class="card-img" src="@post.CoverPhotoUrl" alt="">
+                                    <img class="card-img" src="@post.CoverPhoto.GetSize("thumbnail")" alt="">
                                 </a>
                             }
                         }

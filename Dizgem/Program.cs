@@ -233,7 +233,7 @@ async void CleanupOldVersions()
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var configuration = builder.Configuration;
 
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -414,10 +414,18 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, opts) =>
     var prov = sp.GetRequiredService<IConnectionStringProvider>();
     var cs = prov.Current;
 
-    // Kurulum tamamlanana kadar boş olabilir; boşsa SQL Server'ı bağlama
+    // Kurulum tamamlanana kadar boş olabilir
     if (!string.IsNullOrWhiteSpace(cs))
     {
+        // KURULUM VARSA: Gerçek SQL Server veritabanını kullan.
         opts.UseSqlServer(cs);
+    }
+    else
+    {
+        // KURULUM YOKSA (veya /Install ekranındaysak):
+        // Identity/Auth servislerinin çökmemesi için
+        // geçici, sahte bir bellek içi veritabanı kullan.
+        opts.UseInMemoryDatabase("Dizgem.Install.Dummy");
     }
 });
 
@@ -539,34 +547,57 @@ if (Directory.Exists(themesPath))
     });
 }
 
-app.UseThemeStaticFiles();
-
 
 app.UseRouting();
 
-app.UseMiddleware<FormHandlerMiddleware>();
-
-// Auth middleware HER ZAMAN aktif olmalı
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Kurulum kontrolü (per-request)
-// Connection string yoksa /Install'a yönlendir; /Install üzerindeyken bırak geçsin.
+// 3. MERKEZİ KURULUM KONTROLÜ (Her istekte çalışır)
+// Bu katman, yönlendirmeyi yapar VE 'IsInstalled' durumunu
+// bir sonraki adımda kullanmak üzere isteğin belleğine (Items) atar.
 app.Use(async (ctx, next) =>
 {
-    var prov = ctx.RequestServices.GetRequiredService<IConnectionStringProvider>();
-    bool needInstall = string.IsNullOrWhiteSpace(prov.Current);
-    bool onInstall = ctx.Request.Path.StartsWithSegments("/Install", StringComparison.OrdinalIgnoreCase);
+    bool isInstalled;
 
-    if (needInstall && !onInstall)
+    // IConnectionStringProvider'ı her zaman request scope'undan al
+    using (var scope = ctx.RequestServices.CreateScope())
     {
-        ctx.Response.Redirect("/Install");
-        return;
+        var prov = scope.ServiceProvider.GetRequiredService<IConnectionStringProvider>();
+        isInstalled = !string.IsNullOrWhiteSpace(prov.Current);
     }
 
+    // Durumu, bu isteğin geri kalanı için (Adım 4'te kullanılacak) sakla
+    ctx.Items["IsInstalled"] = isInstalled;
+
+    bool onInstall = ctx.Request.Path.StartsWithSegments("/Install", StringComparison.OrdinalIgnoreCase);
+
+    if (!isInstalled && !onInstall)
+    {
+        ctx.Response.Redirect("/Install");
+        return; // Pipeline'ı durdur.
+    }
+
+    // Kurulum varsa VEYA kurulum sayfasındaysak, pipeline'a devam et
     await next();
 });
 
+
+// 4. ŞARTLI (DATABASE BAĞIMLI) MIDDLEWARE'LER
+// Bu katmanlar SADECE Adım 3'te "IsInstalled" true olarak ayarlandıysa çalışır.
+app.UseWhen(
+    // Bu fonksiyon true dönerse...
+    context => (bool)(context.Items["IsInstalled"] ?? false),
+
+    // ...bu (installedApp) pipeline'ı çalıştır.
+    installedApp =>
+    {
+        // Artık "isInstalled" true olduğundan eminiz.
+        installedApp.UseThemeStaticFiles(); // (Tahminimce DB'ye bağlı)
+        installedApp.UseMiddleware<FormHandlerMiddleware>();
+
+        // EN ÖNEMLİSİ: Auth, DB'ye bağlı olduğu için ARTIK GÜVENLİ BİR YERDE.
+        installedApp.UseAuthentication();
+        installedApp.UseAuthorization();
+    }
+);
 
 // -----------------------------
 // Routes

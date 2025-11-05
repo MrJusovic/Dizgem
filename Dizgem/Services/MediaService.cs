@@ -180,6 +180,7 @@ namespace Dizgem.Services
                 FileName = m.FileName,
                 FileType = m.FileType,
                 Title = m.Title,
+                UrlFull = m.UrlFull,
                 ThumbnailUrl = m.FileType.StartsWith("image/")
                                ? (m.ImageSizes.ContainsKey("thumbnail") ? m.ImageSizes["thumbnail"] : m.UrlFull)
                                : GetIconForFileType(m.FileType) // Görsel değilse bir ikon yolu döndür

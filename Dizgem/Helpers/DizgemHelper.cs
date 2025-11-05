@@ -60,7 +60,7 @@ namespace Dizgem.Helpers
             ).ToString();
 
             // Kullanılacak resmi belirleme:
-            string? imageUrl = content?.CoverPhotoUrl ?? settings.SiteImageUrl;
+            string? imageUrl = content?.CoverPhotoMediaId != Guid.Empty && content?.CoverPhotoMediaId != null ? content?.CoverPhoto?.UrlFull : settings.SiteImageUrl;
             if (!string.IsNullOrWhiteSpace(imageUrl) && !imageUrl.StartsWith("http"))
             {
                 imageUrl = new Uri(new Uri($"{request.Scheme}://{request.Host}"), imageUrl).ToString();

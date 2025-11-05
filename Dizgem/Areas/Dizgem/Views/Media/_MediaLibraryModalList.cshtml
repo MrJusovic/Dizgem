@@ -1,0 +1,116 @@
+﻿@model MediaListViewModel
+
+<style>
+    /* Bu partial view'a özel stiller */
+    .media-grid-modal {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .media-card-modal {
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        overflow: hidden;
+        background: #f9f9f9;
+        position: relative;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+        .media-card-modal:hover {
+            border-color: #0d6efd;
+        }
+
+        .media-card-modal .media-preview-modal {
+            height: 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eee;
+        }
+
+            .media-card-modal .media-preview-modal img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        .media-card-modal .media-info-modal {
+            padding: 0.5rem;
+            text-align: center;
+            background: #fff;
+        }
+
+        .media-card-modal .media-title-modal {
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+</style>
+
+<div class="media-grid-modal">
+    @if (Model.MediaItems.Any())
+    {
+        @foreach (var item in Model.MediaItems)
+        {
+            <!--
+                data-url: Seçildiğinde Upsert sayfasına gönderilecek olan tam boyutlu resim URL'si.
+                thumbnailUrl: Modal'ın "Seç" butonuna basıldığında ana sayfadaki önizlemeyi güncellemesi için.
+            -->
+            <a href="#" class="media-card-link"
+                data-id="@item.Id"
+               data-url="@item.UrlFull"
+               data-thumbnail-url="@item.ThumbnailUrl"
+               title="@item.Title">
+                <div class="media-card-modal" id="media-@item.Id">
+                    <div class="media-preview-modal">
+                        <img src="@item.ThumbnailUrl" alt="@item.Title" loading="lazy" />
+                    </div>
+                    <div class="media-info-modal">
+                        <span class="media-title-modal">@item.Title</span>
+                    </div>
+                </div>
+            </a>
+        }
+    }
+    else
+    {
+        <div class="col-12 text-center p-4" style="grid-column: 1 / -1;">
+            <p class="text-muted">Aramanızla eşleşen görsel bulunamadı veya kütüphane boş.</p>
+        </div>
+    }
+</div>
+
+<!-- Sayfalama -->
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Medya Kütüphanesi Sayfalama" class="mt-4">
+        <ul class="pagination pagination-sm justify-content-center">
+
+            <!-- Önceki Sayfa -->
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link"
+                   href="@Url.Action("GetMediaLibraryPartial", "Media", new { p = Model.CurrentPage - 1, q = Model.SearchQuery })"
+                   aria-label="Önceki">&laquo;</a>
+            </li>
+
+            <!-- Sayfa Numaraları -->
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("GetMediaLibraryPartial", "Media", new { p = i, q = Model.SearchQuery })">@i</a>
+                </li>
+            }
+
+            <!-- Sonraki Sayfa -->
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link"
+                   href="@Url.Action("GetMediaLibraryPartial", "Media", new { p = Model.CurrentPage + 1, q = Model.SearchQuery })"
+                   aria-label="Sonraki">&raquo;</a>
+            </li>
+        </ul>
+    </nav>
+}

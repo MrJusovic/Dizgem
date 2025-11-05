@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Web;
 
 namespace Dizgem.Controllers
 {
@@ -197,6 +198,22 @@ namespace Dizgem.Controllers
                     db.Settings.Add(new Settings { Key = "SiteDescription", Value = model.SiteDescription ?? "" });
                 else
                     siteDesc.Value = model.SiteDescription ?? "";
+
+
+                string schema = Request.Scheme;
+
+                // 2. Host (domain ve port - örn: "localhost:5000" veya "dizgem.com")
+                // Request.Host.Value, domain ve portu zaten birleşik verir.
+                string host = Request.Host.Value;
+
+                // 3. PathBase (Eğer uygulama bir alt dizinde çalışıyorsa, örn: /blog)
+                // Genellikle boştur, ancak dahil etmek en doğrusudur.
+                string pathBase = Request.PathBase;
+
+                // Tüm parçaları birleştirme
+                string baseUrl = $"{schema}://{host}{pathBase}";
+
+                db.Settings.Add(new Settings() { Key = "SiteUrl", Value = baseUrl });
 
                 await db.SaveChangesAsync();
 

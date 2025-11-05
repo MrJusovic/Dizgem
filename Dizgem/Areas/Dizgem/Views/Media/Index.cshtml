@@ -76,7 +76,7 @@
 </div>
 
 <!-- Medya Listesi -->
-<div class="media-grid">
+<div class="media-grid mb-4">
     @foreach (var item in Model.MediaItems)
     {
         <a asp-action="Detail" asp-route-id="@item.Id" class="media-card-link" title="@item.Title">

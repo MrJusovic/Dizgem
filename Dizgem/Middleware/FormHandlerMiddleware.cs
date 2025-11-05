@@ -9,7 +9,7 @@ namespace Dizgem.Middleware
     {
         private readonly RequestDelegate _next;
 
-        public FormHandlerMiddleware(RequestDelegate next)
+        public FormHandlerMiddleware(RequestDelegate next) 
         {
             _next = next;
         }

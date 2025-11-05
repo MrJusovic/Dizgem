@@ -85,6 +85,18 @@ namespace Dizgem.Models
                 : JsonSerializer.Deserialize<Dictionary<string, string>>(ImageSizesJson);
             set => ImageSizesJson = JsonSerializer.Serialize(value);
         }
+        
+        public string GetSize(string size)
+        {
+            if (ImageSizes.TryGetValue(size, out string imageUrl))
+            {
+                // 3. Bulunduysa, o boyutu döndür
+                return imageUrl;
+            }
+
+            // 4. Bulunamadıysa (TryGetValue false döndürdüyse), varsayılan UrlFull'u döndür
+            return UrlFull;
+        }
 
         // --- İlişkiler ---
 

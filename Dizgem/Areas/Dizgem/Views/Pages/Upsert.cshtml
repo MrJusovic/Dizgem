@@ -9,37 +9,43 @@
     <link href="~/lib/grapes/tui-image-editor.css" rel="stylesheet" type="text/css" media="all" />
     <link href="~/lib/grapes/grapesjs-component-code-editor.min.css" rel="stylesheet" type="text/css" media="all" />
     <style>
-        #cover-photo-uploader {
-            border: 2px dashed #007bff;
-            border-radius: 5px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
-        }
-
-            #cover-photo-uploader.dragover {
-                background-color: #f0f8ff;
-                border-color: #0056b3;
-            }
-
         #cover-photo-preview-container {
             position: relative;
             display: none; /* Başlangıçta gizli */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: #f8f9fa;
         }
 
         #cover-photo-preview {
             max-width: 100%;
+            height: auto;
             max-height: 300px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
         }
 
         #remove-cover-photo {
             position: absolute;
             top: 10px;
             right: 10px;
+            z-index: 10;
         }
+
+        #cover-photo-selector-placeholder {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+            #cover-photo-selector-placeholder:hover {
+                background-color: rgb(248 249 250 / 2%);
+            }
     </style>
 }
 
@@ -123,26 +129,24 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <div class="form-group mb-3">
-                    <label asp-for="Post.CoverPhotoUrl" class="control-label"></label>
+                    <label asp-for="Post.CoverPhotoMediaId" class="control-label">Kapak Fotoğrafı</label>
 
                     @* Bu gizli input, sunucuya gönderilecek olan URL'i tutar *@
-                    <input type="hidden" asp-for="Post.CoverPhotoUrl" id="cover-photo-url-input" />
+                    <input type="hidden" asp-for="Post.CoverPhotoMediaId" id="cover-photo-url-input" />
 
                     @* Resim önizlemesi ve kaldırma butonu için konteyner *@
                     <div id="cover-photo-preview-container">
-                        <img id="cover-photo-preview" src="@Model?.Post?.CoverPhotoUrl" alt="Kapak Fotoğrafı Önizlemesi" />
+                        <img id="cover-photo-preview" src="@Model?.Post?.CoverPhoto?.GetSize("full")" alt="Kapak Fotoğrafı Önizlemesi" />
                         <button type="button" id="remove-cover-photo" class="btn btn-danger btn-sm">&times; Kaldır</button>
                     </div>
 
-                    @* Sürükle-bırak alanı *@
-                    <div id="cover-photo-uploader">
-                        <p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p>
-                        <small class="text-muted">(Max 5MB - .jpg, .png, .gif, .webp)</small>
+                    @* Medya Kütüphanesini açan placeholder/buton *@
+                    <div id="cover-photo-selector-placeholder" data-bs-toggle="modal" data-bs-target="#mediaLibraryModal">
+                        <p>Kapak fotoğrafı seçmek için tıklayın</p>
+                        <small class="text-muted">(Kütüphaneden seçin veya yeni yükleyin)</small>
                     </div>
 
-                    @* Gerçek dosya seçimi için gizli input *@
-                    <input type="file" id="cover-photo-file-input" accept="image/*" style="display: none;" />
-                    <span asp-validation-for="Post.CoverPhotoUrl" class="text-danger"></span>
+                    <span asp-validation-for="Post.CoverPhotoMediaId" class="text-danger"></span>
                 </div>
             </div>
             <div class="card-footer">
@@ -197,6 +201,8 @@
 
 </form>
 @section Scripts {
+    <partial name="_MediaLibraryModal" />
+
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
@@ -656,88 +662,7 @@
                 });
             }
 
-            // Kapak fotoğrafı yükleyici mantığı
-            const uploader = document.getElementById('cover-photo-uploader');
-            const fileInput = document.getElementById('cover-photo-file-input');
-            const urlInput = document.getElementById('cover-photo-url-input');
-            const previewContainer = document.getElementById('cover-photo-preview-container');
-            const previewImg = document.getElementById('cover-photo-preview');
-            const removeBtn = document.getElementById('remove-cover-photo');
-
-            // Sayfa yüklendiğinde mevcut kapak fotoğrafı varsa göster
-            if (urlInput.value) {
-                previewContainer.style.display = 'block';
-                uploader.style.display = 'none';
-            } else {
-                previewContainer.style.display = 'none';
-                uploader.style.display = 'block';
-            }
-
-            uploader.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length > 0) {
-                    handleFileUpload(fileInput.files[0]);
-                }
-            });
-
-            // Drag & Drop olayları
-            uploader.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploader.classList.add('dragover');
-            });
-            uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
-            uploader.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploader.classList.remove('dragover');
-                if (e.dataTransfer.files.length > 0) {
-                    handleFileUpload(e.dataTransfer.files[0]);
-                }
-            });
-
-            // Resmi kaldırma
-            removeBtn.addEventListener('click', () => {
-                urlInput.value = '';
-                previewImg.src = '';
-                fileInput.value = ''; // Seçili dosyayı temizle
-                previewContainer.style.display = 'none';
-                uploader.style.display = 'block';
-            });
-
-            function handleFileUpload(file) {
-                if (!file.type.startsWith('image/')) {
-                    alert('Lütfen bir resim dosyası seçin.');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('image', file); // API'nin beklediği parametre adı 'image'
-
-                // Yükleme sırasında görsel geri bildirim (isteğe bağlı)
-                uploader.innerHTML = '<p>Yükleniyor...</p>';
-
-                fetch('/api/upload/UploadImage', {
-                    method: 'POST',
-                    body: formData,
-                    // CSRF token'ı başlığa eklemek gerekebilir, ancak cookie tabanlı auth genellikle yeterlidir.
-                })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.success === 1 && result.file.url) {
-                        urlInput.value = result.file.url;
-                        previewImg.src = result.file.url;
-                        previewContainer.style.display = 'block';
-                        uploader.style.display = 'none';
-                    } else {
-                        throw new Error(result.message || 'Dosya yüklenemedi.');
-                    }
-                })
-                .catch(error => {
-                    alert('Hata: ' + error.message);
-                    // Hata durumunda yükleyiciyi eski haline getir
-                    uploader.innerHTML = '<p>Buraya bir resim sürükleyin veya seçmek için tıklayın.</p><small class="text-muted">(Max 5MB - .jpg, .png, .gif, .webp)</small>';
-                });
-            }
-
+            
             function generateSlug(text) {
                 return text.toString().toLowerCase()
                     .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
@@ -746,5 +671,43 @@
                     .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
             }
         });
+    </script>
+
+    <script>
+        // === YENİ KAPAK FOTOĞRAFI SEÇİCİ MANTIĞI ===
+        (function() {
+            const urlInput = document.getElementById('cover-photo-url-input');
+            const previewContainer = document.getElementById('cover-photo-preview-container');
+            const previewImg = document.getElementById('cover-photo-preview');
+            const removeBtn = document.getElementById('remove-cover-photo');
+            const selectorPlaceholder = document.getElementById('cover-photo-selector-placeholder');
+
+            // Mevcut bir resim varsa ilgili alanları ayarla
+            function updatePreviewVisibility() {
+                const hasValue = urlInput.value.trim() !== '';
+                previewContainer.style.display = hasValue ? 'block' : 'none';
+                selectorPlaceholder.style.display = hasValue ? 'none' : 'block';
+            }
+
+            // Resmi kaldırma
+            removeBtn.addEventListener('click', () => {
+                urlInput.value = '';
+                previewImg.src = '';
+                updatePreviewVisibility();
+            });
+
+            // Medya Kütüphanesinden bir resim seçildiğinde tetiklenen olayı dinle
+            // Bu event _MediaLibraryModal.cshtml tarafından fırlatılır
+            document.addEventListener('dizgem:media:selected', function (e) {
+                const { id, url, thumbnailUrl } = e.detail;
+                urlInput.value = id;
+                previewImg.src = url; // Önizleme için thumbnail kullan
+                updatePreviewVisibility();
+            });
+
+            // Sayfa yüklendiğinde ilk durumu ayarla
+            updatePreviewVisibility();
+        })();
+        // =============================================
     </script>
 }

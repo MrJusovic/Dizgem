@@ -13,15 +13,17 @@
             <article class="card mb-4">
                 <header class="card-header text-center">
                     <div class="card-meta">
-                        @Model?.PostCategories?.First(x=>x.IsPrimary)?.Category?.Name
+                        @Model?.PostCategories?.FirstOrDefault(x=>x.IsPrimary)?.Category?.Name
                     </div>
                     <a href="post-image.html">
                         <h1 class="card-title">@Model?.Title</h1>
                     </a>
                 </header>
-                <a href="post-image.html">
-                    <img class="card-img" src="@Model?.CoverPhotoUrl" alt="">
-                </a>
+                <figure>
+                    <img class="card-img" src="@Model?.CoverPhoto?.GetSize("full")" alt="@Model?.CoverPhoto?.AltText" />
+
+                    <figcaption>@Model?.CoverPhoto?.Description</figcaption>
+                </figure>
                 <div class="card-body">
                     @Model?.RenderedContent
                 </div>

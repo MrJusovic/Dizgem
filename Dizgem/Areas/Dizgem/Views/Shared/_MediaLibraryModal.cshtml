@@ -1,0 +1,235 @@
+﻿@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+
+<!-- Medya Kütüphanesi Modal -->
+<div class="modal fade" id="mediaLibraryModal" tabindex="-1" aria-labelledby="mediaLibraryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mediaLibraryModalLabel">Medya Kütüphanesi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <button class="nav-link active" id="nav-library-tab" data-bs-toggle="tab" data-bs-target="#nav-library" type="button" role="tab" aria-controls="nav-library" aria-selected="true">Kütüphaneden Seç</button>
+                        <button class="nav-link" id="nav-upload-tab" data-bs-toggle="tab" data-bs-target="#nav-upload" type="button" role="tab" aria-controls="nav-upload" aria-selected="false">Yeni Yükle</button>
+                    </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                    <!-- Kütüphane Sekmesi -->
+                    <div class="tab-pane fade show active" id="nav-library" role="tabpanel" aria-labelledby="nav-library-tab">
+                        <div class="row pt-3">
+                            <div class="col-12">
+                                <div class="input-group mb-3">
+                                    <input type="text" id="media-search-input" class="form-control" placeholder="Görsellerde ara...">
+                                    <button class="btn btn-outline-secondary" type="button" id="media-search-btn">Ara</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="media-library-content">
+                            <!-- Medya listesi (Partial View) buraya yüklenecek -->
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Yeni Yükle Sekmesi -->
+                    <div class="tab-pane fade" id="nav-upload" role="tabpanel" aria-labelledby="nav-upload-tab">
+                        <div id="modal-upload-dropzone" class="p-5 my-3 text-center" style="border: 2px dashed #0d6efd; border-radius: 5px; background-color: rgb(248 249 250 / 2%); cursor: pointer;">
+                            <p class="mb-0">Dosyaları buraya sürükleyin veya seçmek için tıklayın</p>
+                            <small class="text-muted">(Sadece görsellere izin verilir)</small>
+                            <input type="file" id="modal-file-input" accept="image/*" class="d-none" />
+                        </div>
+                        <div id="modal-upload-status" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="select-media-btn" disabled>Seç</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    (function() {
+        if (window.mediaLibraryModalScriptLoaded) return;
+        window.mediaLibraryModalScriptLoaded = true;
+
+        let selectedMediaUrl = null;
+        let selectedMediaThumbUrl = null;
+        let selectedMediaId = null;
+        const modalElement = document.getElementById('mediaLibraryModal');
+        const selectBtn = document.getElementById('select-media-btn');
+        const libraryContent = document.getElementById('media-library-content');
+        const searchInput = document.getElementById('media-search-input');
+        const searchBtn = document.getElementById('media-search-btn');
+
+        // Modal açıldığında kütüphaneyi yükle
+        modalElement.addEventListener('show.bs.modal', function () {
+            loadMediaLibrary(1);
+        });
+
+        // AJAX ile Kütüphane Partial View'ını yükleyen fonksiyon
+        function loadMediaLibrary(page, query = "") {
+            libraryContent.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Yükleniyor...</span></div></div>';
+            
+            fetch(`/Dizgem/Media/GetMediaLibraryPartial?p=${page}&q=${encodeURIComponent(query)}`)
+                .then(response => response.text())
+                .then(html => {
+                    libraryContent.innerHTML = html;
+                    // Yüklendikten sonra click event'lerini bağla
+                    bindLibraryEvents();
+                })
+                .catch(err => {
+                    libraryContent.innerHTML = '<div class="alert alert-danger">Kütüphane yüklenirken bir hata oluştu.</div>';
+                });
+        }
+
+        // Kütüphane içindeki tıklama olaylarını (resim seçimi, sayfalama) bağlayan fonksiyon
+        function bindLibraryEvents() {
+            // Resim seçimi
+            libraryContent.querySelectorAll('.media-card-link').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Diğer seçimleri kaldır
+                    libraryContent.querySelectorAll('.media-card-modal').forEach(c => c.style.borderColor = '#ddd');
+                    
+                    // Bunu seç
+                    const mediaCard = this.querySelector('.media-card-modal');
+                    mediaCard.style.borderColor = '#0d6efd';
+                    
+                    // Verileri al
+                    selectedMediaUrl = this.dataset.url;
+                    selectedMediaId = this.dataset.id;
+                    selectedMediaThumbUrl = this.querySelector('img').src;
+                    
+                    // Seç butonunu aktif et
+                    selectBtn.disabled = false;
+                });
+            });
+
+            // Sayfalama linkleri
+            libraryContent.querySelectorAll('.pagination a.page-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const url = new URL(this.href);
+                    const page = url.searchParams.get('p') || 1;
+                    const query = url.searchParams.get('q') || "";
+                    loadMediaLibrary(page, query);
+                });
+            });
+        }
+
+        // Arama butonu
+        searchBtn.addEventListener('click', () => {
+            loadMediaLibrary(1, searchInput.value);
+        });
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                loadMediaLibrary(1, searchInput.value);
+            }
+        });
+
+        // "Seç" butonuna tıklandığında
+        selectBtn.addEventListener('click', () => {
+            if (selectedMediaId) {
+                // Seçilen veriyi Upsert.cshtml'e göndermek için bir event tetikle
+                const event = new CustomEvent('dizgem:media:selected', { 
+                    detail: { 
+                        url: selectedMediaUrl,
+                        thumbnailUrl: selectedMediaThumbUrl,
+                        id: selectedMediaId
+                    } 
+                });
+                document.dispatchEvent(event);
+                
+                // Modalı kapat
+                var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                modalInstance.hide();
+            }
+        });
+
+        // Modal kapandığında seçimi sıfırla
+        modalElement.addEventListener('hide.bs.modal', function () {
+            selectedMediaUrl = null;
+            selectedMediaThumbUrl = null;
+            selectedMediaId = null;
+            selectBtn.disabled = true;
+            searchInput.value = '';
+            document.getElementById('nav-library-tab').click(); // Kütüphane sekmesine geri dön
+        });
+
+
+        // --- YENİ YÜKLE SEKMESİ MANTIĞI ---
+        const dropzone = document.getElementById('modal-upload-dropzone');
+        const fileInput = document.getElementById('modal-file-input');
+        const uploadStatus = document.getElementById('modal-upload-status');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => handleUpload(fileInput.files[0]));
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropzone.style.backgroundColor = '#e9ecef';
+        });
+        dropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropzone.style.backgroundColor = '#f8f9fa';
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            dropzone.style.backgroundColor = '#f8f9fa';
+            if (e.dataTransfer.files.length > 0) {
+                handleUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleUpload(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                uploadStatus.innerHTML = '<div class="alert alert-danger">Sadece görsel dosyaları yükleyebilirsiniz.</div>';
+                return;
+            }
+
+            uploadStatus.innerHTML = `<div class="progress"><div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%">Yükleniyor...</div></div>`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('__RequestVerificationToken', '@Xsrf.GetAndStoreTokens(Context).RequestToken');
+
+            fetch('/Dizgem/Media/UploadFromModal', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    uploadStatus.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                    // Yükleme başarılı, bu resmi seçili yap ve kütüphane sekmesine geç
+                    selectedMediaUrl = result.url;
+                    selectedMediaThumbUrl = result.thumbnailUrl;
+                    selectedMediaId = result.id;
+                    selectBtn.disabled = false;
+                    
+                    // Kütüphaneyi yenile ve kütüphane sekmesine geç
+                    loadMediaLibrary(1);
+                    document.getElementById('nav-library-tab').click();
+
+                    // Seç butonuna tıkla ve modalı kapat
+                    selectBtn.click();
+                } else {
+                    throw new Error(result.message);
+                }
+            })
+            .catch(error => {
+                uploadStatus.innerHTML = `<div class="alert alert-danger">Hata: ${error.message}</div>`;
+            });
+        }
+    })();
+</script>

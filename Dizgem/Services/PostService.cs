@@ -50,12 +50,15 @@ namespace Dizgem.Services
             var posts = await query.OrderByDescending(p => p.PublishedDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Include(p => p.CoverPhoto)
                 .Select(p => new PostSummaryViewModel
                 {
                     Title = p.Title,
                     Slug = p.Slug,
                     Excerpt = p.Excerpt,
-                    CoverPhotoUrl = p.CoverPhotoUrl,
+                    CoverPhoto = p.CoverPhoto,
+                    CoverPhotoMediaId = p.CoverPhotoMediaId,
+                    
                     PublishedDate = p.PublishedDate,
                     AuthorDisplayName = p.Author.DisplayName,
                     PrimaryCategoryName = p.PostCategories.FirstOrDefault(pc => pc.IsPrimary).Category.Name,
@@ -85,6 +88,7 @@ namespace Dizgem.Services
             // 1. Adım: Veritabanından ilgili Post nesnesini bulalım.
             var post = await _context.Posts
                 .Include(p => p.Author)
+                .Include(p => p.CoverPhoto)
                 .Include(p => p.PostCategories).ThenInclude(pc => pc.Category)
                 .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
                 .AsNoTracking()
@@ -147,6 +151,7 @@ namespace Dizgem.Services
             {
                 viewModel.Post = await _context.Posts
                     .Include(p => p.PostCategories)
+                    .Include(p => p.CoverPhoto)
                     .Include(p => p.PostTags).ThenInclude(pt => pt.Tag)
                     .AsNoTracking() // Takip gereksiz, performansı artırır.
                     .FirstOrDefaultAsync(p => p.Id == postId.Value);
@@ -156,6 +161,7 @@ namespace Dizgem.Services
                     viewModel.SelectedCategoryIds = viewModel.Post.PostCategories.Select(pc => pc.CategoryId).ToList();
                     viewModel.PrimaryCategoryId = viewModel.Post.PostCategories.FirstOrDefault(pc => pc.IsPrimary)?.CategoryId;
                     viewModel.TagsString = string.Join(",", viewModel.Post.PostTags.Select(pt => pt.Tag.Name));
+                    
                 }
             }
 

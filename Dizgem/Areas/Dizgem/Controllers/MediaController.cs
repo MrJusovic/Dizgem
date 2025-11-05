@@ -116,5 +116,61 @@ namespace Dizgem.Areas.Dizgem.Controllers
             }
             return BadRequest(new { success = false, message = message });
         }
+
+        /// <summary>
+        /// Yazı/Sayfa editöründeki "Kapak Fotoğrafı Seç" modalı için resim listesini
+        /// PartialView olarak döndürür. Sadece görselleri listeler.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetMediaLibraryPartial(int p = 1, string q = null)
+        {
+            if (p < 1) p = 1;
+            // Servisi sadece "image" tipindeki dosyaları getirecek şekilde çağır
+            var viewModel = await _mediaService.GetMediaListAsync(p, PageSize, q, "image");
+
+            // Bu PartialView'ı bir sonraki adımda oluşturacağız
+            return PartialView("_MediaLibraryModalList", viewModel);
+        }
+
+        /// <summary>
+        /// Modal içerisinden dosya yüklemeyi yönetir ve JSON olarak sonuç döndürür.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadFromModal(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "Yüklenecek dosya seçilmedi." });
+            }
+
+            // Güvenlik: Sadece görsel yüklenebildiğinden emin ol (opsiyonel ama önerilir)
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                return BadRequest(new { success = false, message = "Sadece görsel dosyaları (.jpg, .png, .gif, .webp) yükleyebilirsiniz." });
+            }
+
+            try
+            {
+                var media = await _mediaService.UploadFileAsync(file, null); // UserID serviste alınacak
+
+                // Başarılı yüklemenin ardından, modal'ın hemen kullanabilmesi için
+                // yeni oluşturulan medya dosyasının detaylarını JSON olarak döndür.
+                return Ok(new
+                {
+                    success = true,
+                    message = "Dosya başarıyla yüklendi.",
+                    // Modal'ın seçilen resmi hemen listeye eklemesi için gerekli bilgiler
+                    id = media.Id,
+                    title = media.Title,
+                    url = media.UrlFull,
+                    thumbnailUrl = media.ImageSizes.ContainsKey("thumbnail") ? media.ImageSizes["thumbnail"] : media.UrlFull
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = $"Dosya yüklenirken bir hata oluştu: {ex.Message}" });
+            }
+        }
     }
 }

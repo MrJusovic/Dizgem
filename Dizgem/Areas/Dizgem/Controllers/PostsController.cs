@@ -67,6 +67,7 @@ namespace Dizgem.Areas.Dizgem.Controllers
             ModelState.Remove("Post.TagsString");
             ModelState.Remove("TagsString");
             ModelState.Remove("Post.Comments");
+            ModelState.Remove("Post.CoverPhoto");
 
             if (ModelState.IsValid)
             {

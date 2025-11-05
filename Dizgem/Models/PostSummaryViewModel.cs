@@ -9,7 +9,8 @@
         public string Title { get; set; }
         public string Slug { get; set; }
         public string Excerpt { get; set; } = "";
-        public string CoverPhotoUrl { get; set; } = "";
+        public Guid? CoverPhotoMediaId { get; set; }
+        public Media? CoverPhoto { get; set; }
         public DateTime PublishedDate { get; set; }
         public string AuthorDisplayName { get; set; }
         public string PrimaryCategoryName { get; set; }

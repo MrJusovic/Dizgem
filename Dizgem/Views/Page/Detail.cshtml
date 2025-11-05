@@ -6,9 +6,9 @@
 
 <h1>@Model.Title</h1>
 @{
-    if (!string.IsNullOrEmpty(Model?.CoverPhotoUrl ?? null))
+    if (Model.CoverPhotoMediaId != Guid.Empty && Model.CoverPhoto != null)
     {
-        <img class="img img-fluid img-shadow" src="@Model.CoverPhotoUrl" />
+        <img class="img img-fluid img-shadow" src="@Model?.CoverPhoto.GetSize("full")" />
     }
 }
 

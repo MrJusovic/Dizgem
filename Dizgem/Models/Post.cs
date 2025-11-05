@@ -20,8 +20,11 @@ namespace Dizgem.Models
         [Required(ErrorMessage = "Özet alanı zorunludur.")]
         public string Excerpt { get; set; }
 
-        [Display(Name = "Kapak Fotoğrafı URL")]
-        public string? CoverPhotoUrl { get; set; }
+        [Display(Name = "Kapak Fotoğrafı")]
+        public Guid? CoverPhotoMediaId { get; set; }
+
+        [ForeignKey("CoverPhotoMediaId")]
+        public virtual Media CoverPhoto { get; set; }
 
         // Editor.js'in ham JSON çıktısını burada saklayacağız.
         // Bu alan "source of truth" (verinin asıl kaynağı) olacak.

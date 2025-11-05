@@ -64,10 +64,12 @@ namespace Dizgem.Areas.Dizgem.Controllers
             ModelState.Remove("Post.ContentJson");
             ModelState.Remove("Post.Excerpt");
             ModelState.Remove("TagsString");
-            ModelState.Remove("Page.Comments");
+            ModelState.Remove("Post.Comments");
+            ModelState.Remove("Post.CoverPhoto");
 
             if (ModelState.IsValid)
             {
+
                 if (model.Post.Id == Guid.Empty)
                 {
                     // Create işlemi
@@ -81,6 +83,10 @@ namespace Dizgem.Areas.Dizgem.Controllers
                 }
 
                 return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                ViewData["ErrorMessage"] = ModelState.ToHtmlErrorList();
             }
 
             // Model geçerli değilse, kategori listesi gibi gerekli alanları tekrar doldur.

@@ -48,12 +48,16 @@ namespace Dizgem.Services
             var pages = await query.OrderByDescending(p => p.PublishedDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Include(p => p.CoverPhoto)
                 .Select(p => new PostSummaryViewModel
                 {
                     Title = p.Title,
                     Slug = p.Slug,
                     Excerpt = p.Excerpt,
-                    CoverPhotoUrl = p.CoverPhotoUrl,
+
+                    CoverPhoto = p.CoverPhoto,
+                    CoverPhotoMediaId = p.CoverPhotoMediaId,
+
                     PublishedDate = p.PublishedDate,
                     AuthorDisplayName = p.Author.DisplayName,
                     PrimaryCategoryName = p.PageCategories.FirstOrDefault(pc => pc.IsPrimary).Category.Name
@@ -74,6 +78,7 @@ namespace Dizgem.Services
             // 1. Adım: Veritabanından ilgili Post nesnesini bulalım.
             var page = await _context.Pages
                 .Include(p => p.Author)
+                .Include(p => p.CoverPhoto)
                 .Include(p => p.PageCategories).ThenInclude(pc => pc.Category)
                 .Include(p => p.PageTags).ThenInclude(pt => pt.Tag)
                 .AsNoTracking()
@@ -129,6 +134,7 @@ namespace Dizgem.Services
             {
                 viewModel.Post = await _context.Pages
                     .Include(p => p.PageCategories)
+                    .Include(p=> p.CoverPhoto)
                     .Include(p => p.PageTags).ThenInclude(pt => pt.Tag)
                     .AsNoTracking() // Takip gereksiz, performansı artırır.
                     .FirstOrDefaultAsync(p => p.Id == pageId.Value);
@@ -138,6 +144,7 @@ namespace Dizgem.Services
                     viewModel.SelectedCategoryIds = viewModel.Post.PageCategories.Select(pc => pc.CategoryId).ToList();
                     viewModel.PrimaryCategoryId = viewModel.Post.PageCategories.FirstOrDefault(pc => pc.IsPrimary)?.CategoryId;
                     viewModel.TagsString = string.Join(",", viewModel.Post.PageTags.Select(pt => pt.Tag.Name));
+                    
                 }
             }
 
